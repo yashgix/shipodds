@@ -10,9 +10,16 @@ it promotes a candidate that is really worse, or it spends far more runs than th
 
 This project measures that trade-off on real recorded agent trials: the tau2-bench paper's published runs (four
 models, three customer-service domains, policy and setup variants, four trials of every task, with each run's
-reward and recorded dollar cost). Eleven gate rules are replayed on those runs. For each rule the experiment reports
-how often it promotes an identical copy of the agent, how often it promotes a worse candidate, how often it
-promotes a better one, how often it cannot decide, and what a decision costs in runs and dollars.
+reward and recorded dollar cost). Eleven gate rules are replayed on those runs, plus two reference rules (always
+hold, and a fixed test checked after every round). For each rule the experiment reports how often it promotes an
+identical copy of the agent, how often it promotes a worse candidate, how often it promotes a better one, how often
+it holds or cannot decide on a better one, and what a decision costs in runs and dollars.
+
+**Headline.** The result is two separate effects, and they are easy to mix up. A proper statistical test, not the
+sequential design, is what stops false promotions: a one-trial test already does it at a quarter of the cost. The
+sequential design is what saves money: it keeps the test's false-promotion rate and almost all of the power of a
+full four-trial test, at a lower cost. Every safe rule pays for its safety by promoting fewer truly better
+candidates. The numbers are generated at the top of [Results](#results), next to the caveats that bound them.
 
 ## Why it matters
 
@@ -73,13 +80,29 @@ python demo.py --readme README.md --out README.md # render the results block bel
 make readme                                       # the same, via the Makefile
 ```
 
-`experiment.py` also takes `--data DIR` (the folder holding `runs.csv`) and `--replicates N`; two runs with the same
-arguments write byte-identical files. `demo.py` reads `results/metrics.json` (or `--results DIR`) and only ever
-prints or renders what that file contains.
+`experiment.py` also takes `--data DIR` (the folder holding `runs.csv`) and `--replicates N`. Two runs with the same
+arguments write byte-identical files. It writes the v1 metrics to `--out` and the v2 additions (the reference rules
+and the count of distinct comparisons, see `SPEC-v2.md`) to `metrics_v2.json` beside it. `demo.py` reads both from
+`results/` (or `--results DIR`) and only ever prints or renders what they contain.
 
 ## Results
 
 <!-- results:start -->
+**Two separate effects.** A proper test instead of the mean gate is what lowers false promotions. With one trial per task and the same cost, mean_1 promotes an identical copy 43.9% of the time and cmh_1 2.4%. A sequential test instead of a fixed one is what lowers cost. sequential_obf promotes 69.2% of truly better candidates against 70.2% for cmh_4, at 71.5% of a full evaluation's cost instead of 100.0%. Both promote an identical copy about as often (2.4% and 2.4%). The sequential boundaries matter: checking the fixed test after every round (naive_peek) promotes an identical copy 6.1% of the time. Its better power (72.3%) and lower cost (53.7%) come from that looser error rate. Safety costs power: mean_1 promotes 88.8% of better candidates, sequential_obf 69.2%, and always_hold none.
+
+The 52 pairs are only 26 distinct comparisons, each counted in both directions, and some configs appear in several comparisons, so the group rates are not 52 independent measurements. The recommended rule was picked on these same results, by a rule whose caps were set after a prototype run on the same data. It has not been checked on held-out data.
+
+| Rule | Identical copy promoted | Worse promoted | Better promoted (power) | Better held (false rejection) | Better inconclusive (incumbent kept) | Share of full evaluation |
+|---|---|---|---|---|---|---|
+| always_hold | 0.0% | 0.0% | 0.0% | 100.0% | 0.0% | 0.0% |
+| mean_1 | 43.9% | 7.5% | 88.8% | 11.2% | 0.0% | 25.0% |
+| mean_4 | 47.1% | 3.3% | 95.9% | 4.1% | 0.0% | 100.0% |
+| cmh_1 | 2.4% | 0.0% | 38.6% | 0.0% | 61.3% | 25.0% |
+| cmh_4 | 2.4% | 0.0% | 70.2% | 0.0% | 29.8% | 100.0% |
+| naive_peek | 6.1% | 0.1% | 72.3% | 0.1% | 27.6% | 53.7% |
+| sequential_pocock | 2.2% | 0.0% | 64.3% | 0.0% | 35.7% | 61.0% |
+| sequential_obf | 2.4% | 0.0% | 69.2% | 0.0% | 30.7% | 71.5% |
+
 Across 52 candidate/incumbent pairs (26 configs, 10,832 recorded runs; 26 identical-copy pairs), each gate was replayed 2,000 times. A full 4-trial evaluation of both arms costs $131.04 on average. The full recorded evaluation promotes 19 pairs, holds 19, and cannot decide 14.
 
 | Rule | Identical copy promoted | Worse promoted | Better promoted | Inconclusive | Runs per decision | Cost per decision | Share of full evaluation |
@@ -154,24 +177,32 @@ Across 52 candidate/incumbent pairs (26 configs, 10,832 recorded runs; 26 identi
 
 ## What this shows
 
-Read the table above as two costs that trade against each other. The identical-copy and worse-promoted columns are
-the first cost: how often a gate promotes an agent that is not better, which is what a team feels when a rollout
-regresses. The better-promoted and inconclusive columns are the second: how much of the time a gate refuses to act
-on a real improvement. The last columns translate both into runs and dollars, measured against a full four-trial
-evaluation of both arms.
+Read the first table as three questions about each rule. How often does it promote something that is not better
+(identical copy, worse)? How often does it promote a real improvement (power)? And when it does not, does it
+actively hold or just fail to decide? In practice both of the last two keep the incumbent. The last column puts
+each rule's cost against a full four-trial evaluation of both arms.
 
-The comparison across rows is the point of the exercise. The one-trial mean rule is what a team writes when it has
-not thought about noise, and its identical-copy column shows the price of that. The stratified and bootstrap rules
-test different questions — "better on this suite?" versus "better on new tasks like these?" — so they disagree on
-which pairs they can decide, and the per-pair table shows where. Group-sequential versions answer the same question
-as their fixed-trial counterparts but stop as soon as the answer is clear, which is why their cost column sits below
-a full evaluation.
+Two comparisons carry the result, and each isolates one effect.
+- **Test versus mean gate, at equal cost.** `mean_1` and `cmh_1` see exactly the same trials. The only difference is
+  whether the rule accounts for noise. That alone moves the identical-copy rate from the "higher mean wins" level to
+  about the test's nominal 2.5%.
+- **Sequential versus fixed, at equal error.** `sequential_obf` and `cmh_4` use the same statistic and promote
+  identical copies about equally often. The sequential rule stops early when the answer is clear, so it costs less
+  and gives up a little power.
 
-The recommended row is picked by the experiment, not by hand: among the rules whose identical-copy and
+`naive_peek` shows why the sequential boundaries are needed. It is the fixed test checked after every round with no
+correction, which is what a team does when it "just keeps an eye on the numbers". It stops early too, but its
+false-promotion rate is well above the nominal level. `always_hold` is the floor: no false promotions, no power, no
+cost. A gate is only worth running for the improvements it lets through.
+
+The stratified and bootstrap rules test different questions ("better on this suite?" versus "better on new tasks
+like these?"), so they disagree on which pairs they can decide. The per-pair table shows where.
+
+The recommended row is picked by the experiment, not by hand. Among the v1 rules whose identical-copy and
 worse-promoted rates both stay under 5%, it keeps those within 5 points of the best better-promoted rate and takes
-the cheapest. The caps themselves were fixed after a prototype run, so read the recommendation as a defensible
-choice under a stated policy, not as an optimum. And none of these gates is perfect: a rule whose worse-promoted
-rate rounds to zero in the table still promotes a worse candidate occasionally.
+the cheapest. The caps were fixed after a prototype run on the same data, and the pick is checked on no held-out
+data, so read it as a defensible choice under a stated policy, not as an optimum. The reference rules are never
+recommended.
 
 ## Prior art
 
@@ -193,31 +224,35 @@ None of the statistics here is new; the measurement on real agent trials is the 
 
 - **The recorded runs are the world.** A pair's true difference is what its four recorded trials say, and a
   simulated new trial is one of those four. Per-task pass rates therefore take only five values (0, ¼, ½, ¾, 1),
-  and no new noise is invented. Real trial-to-trial noise may be larger than this world's; every error rate here is
+  and no new noise is invented. Real trial-to-trial noise may be larger than this world's. Every error rate here is
   relative to the recorded runs, not to the agents' true quality.
 - **At most four trials per task.** No rule can buy more information than the data holds, and the sequential rules
   stop after four looks.
-- **Every pair appears in both directions**, so the "worse" and "better" groups mirror each other: 26 distinct
-  comparisons, not 52 independent ones.
+- **Only 26 distinct comparisons.** Every pair appears in both directions, so the "worse" and "better" groups mirror
+  each other. Some configs also appear in several comparisons. The group rates are averages over these 26
+  comparisons, not 52 independent measurements, and the README gives no interval for them.
 - **The task bootstrap answers a broader question** (how the gate behaves on new tasks drawn from a task
-  distribution) than the truth used to score it (this suite). That is why it is more often inconclusive; it is a
+  distribution) than the truth used to score it (this suite). That is why it is more often inconclusive. It is a
   property of the question, not a defect of the method.
 - **The sequential boundaries assume equal information per look.** The identical-copy promotion rate is the
   empirical check that they are not too aggressive here, not a proof.
 - **2025 models and prices, customer-service domains, the paper's June 2025 task sets.** Nothing here speaks to
   current agents.
-- **The recommendation rule and its caps were chosen after a prototype run.** The metrics are recomputed from the
-  recordings every time; the policy that picks the row was not pre-registered.
+- **The recommendation rule and its caps were chosen after a prototype run on the same data.** The metrics are
+  recomputed from the recordings every time, but the policy that picks the row was not pre-registered and is not
+  checked on held-out data.
 - **"Never promotes a worse candidate" is false.** The statistical gates' worse-promotion rates round to 0.0% in
-  the table but are mostly not zero; they are small, not absent.
+  the table but are mostly not zero. They are small, not absent.
 
 ## Layout
 
 ```
 promote_or_hold/   data loading, gate rules, simulation, experiment, report rendering
-experiment.py      replays every gate on every pair and writes results/metrics.json
+experiment.py      replays every gate on every pair and writes results/metrics.json and results/metrics_v2.json
 demo.py            one-line summary, or renders the results block in this README
-tests/             unit tests (unittest)
+tests/             unit tests (unittest), with the v1 acceptance tests unchanged in tests/acceptance/
+SPEC.md            the v1 specification
+SPEC-v2.md         what v2 adds and why
 data/              the pinned extract, its license copy and manifest
 docs/              DESIGN.md and INTERVIEW.md
 ```

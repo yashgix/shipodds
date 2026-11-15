@@ -1,0 +1,55 @@
+{
+ "aa_hold": [
+  1.0,
+  0.064423
+ ],
+ "aa_inconclusive": [
+  0.0,
+  0.874635
+ ],
+ "aa_promote": [
+  0.0,
+  0.060942
+ ],
+ "better_hold": [
+  1.0,
+  0.000673
+ ],
+ "better_inconclusive": [
+  0.0,
+  0.276442
+ ],
+ "better_promote": [
+  0.0,
+  0.722885
+ ],
+ "cost_share": [
+  0.0,
+  0.537284
+ ],
+ "distinct_comparisons": 26,
+ "mean_cost_usd": [
+  0.0,
+  70.403125
+ ],
+ "mean_runs": [
+  0.0,
+  444.106962
+ ],
+ "rules": [
+  "always_hold",
+  "naive_peek"
+ ],
+ "worse_hold": [
+  1.0,
+  0.720635
+ ],
+ "worse_inconclusive": [
+  0.0,
+  0.278654
+ ],
+ "worse_promote": [
+  0.0,
+  0.000712
+ ]
+}
