@@ -1,0 +1,146 @@
+{
+ "source": "https://github.com/sierra-research/tau2-bench",
+ "commit": "c06b07dd7c4d4ec61ba6ff9bcdf0b15dd7ef36d4",
+ "path": "data/tau2/results/final/",
+ "raw_base": "https://raw.githubusercontent.com/sierra-research/tau2-bench/",
+ "license": "MIT (tau2-bench repository; copy in data/tau2-bench-LICENSE)",
+ "fetched": "2026-11-14",
+ "note": "The tau2-bench paper's recorded runs (June 2025 task sets; see data/tau2-results-README.md). runs.csv keeps one row per run: who ran, which task and trial, the reward and the recorded dollar costs.",
+ "upstream": {
+  "claude-3-7-sonnet-20250219_airline_default_gpt-4.1-2025-04-14_4trials.json": {
+   "sha256": "40a2c6a246eab27db5cdefda895fbe7f44be78a23d300817248534aa606d66de",
+   "bytes": 10551448,
+   "git_blob": "aa5ff43544e0fb3bd49ce682ba9c0d7bad10e74a"
+  },
+  "claude-3-7-sonnet-20250219_retail_default_gpt-4.1-2025-04-14_4trials.json": {
+   "sha256": "ed41dbd18c080154156484e3a0122c095e324a11367a640d88e15956daed7b9d",
+   "bytes": 24908843,
+   "git_blob": "1b0e345db5bd9ae5cecfc70ff399f590be70c4f8"
+  },
+  "claude-3-7-sonnet-20250219_telecom_default_gpt-4.1-2025-04-14_4trials.json": {
+   "sha256": "f49e540896fe91ab8631647f02eb777ef6fed5a6ebec545f43e71d0504e227b2",
+   "bytes": 41190190,
+   "git_blob": "25242a9374cc025c219fbd7b8eec94d48acd8ac5"
+  },
+  "gpt-4.1-2025-04-14_airline_default_gpt-4.1-2025-04-14_4trials.json": {
+   "sha256": "31d19e79b8ddc5934a60701f913ff5fefb41dee5e68f7b813c26254ab2e2d5c8",
+   "bytes": 8790399,
+   "git_blob": "f4847076cbf6e509098d22fbf26ff26a7f2b4603"
+  },
+  "gpt-4.1-2025-04-14_retail_default_gpt-4.1-2025-04-14_4trials.json": {
+   "sha256": "5fc5b96ada0fe46a463eaed98d1bfed9947fe073bac052290162dae18d71394e",
+   "bytes": 22044059,
+   "git_blob": "b30d695834f16ddbb114e254e9fc35376d819f6b"
+  },
+  "gpt-4.1-2025-04-14_telecom-workflow_default_gpt-4.1-2025-04-14_4trials.json": {
+   "sha256": "edf9d65e122c850966615488e181a51a7c9ff1d7244e6f908aced9dbc5e56960",
+   "bytes": 36650395,
+   "git_blob": "8d04499576a660637f15dfbaf90e90106da6c014"
+  },
+  "gpt-4.1-2025-04-14_telecom-workflow_no-user-op_gpt-4.1-2025-04-14_4trials.json": {
+   "sha256": "ae28ecfe2a3870fb739e4d1a2ebd0fc8ade9571e38b4a4c167e5c3716800e749",
+   "bytes": 18979307,
+   "git_blob": "5b6b0bb19c47861801cdb36d1a08796062d4ed7b"
+  },
+  "gpt-4.1-2025-04-14_telecom-workflow_no-user_gpt-4.1-2025-04-14_4trials.json": {
+   "sha256": "c2a5208ee3c9dc68f4c539a66244d032b8adb2ac5f33e3339246c3dca8af6c47",
+   "bytes": 21830832,
+   "git_blob": "579ec9f2a70ba0c8ebfa3380b973f0e390c03f70"
+  },
+  "gpt-4.1-2025-04-14_telecom-workflow_op_gpt-4.1-2025-04-14_4trials.json": {
+   "sha256": "3d6a5b58e89dc13fd71829ba53000c80768ea36da1851b6ea96a212a116ba7a0",
+   "bytes": 29914505,
+   "git_blob": "ca729ab0e575fb4a85ddbebab49762407017a801"
+  },
+  "gpt-4.1-2025-04-14_telecom_default_gpt-4.1-2025-04-14_4trials.json": {
+   "sha256": "8e1793f57a9e216514dbce1f93b44b0592d5904f1c5b97ab711906782107a1f2",
+   "bytes": 37463627,
+   "git_blob": "bce33ce98057cb58d22815d328396d41bf9ef1ba"
+  },
+  "gpt-4.1-2025-04-14_telecom_no-user-op_gpt-4.1-2025-04-14_4trials.json": {
+   "sha256": "2065bec4a0f9917af8e031624a8ccc3d69a014f7da6761840fc95c1262ce696a",
+   "bytes": 17661055,
+   "git_blob": "a28f81a72a130e6c13a886c96fd39bc2696bc26a"
+  },
+  "gpt-4.1-2025-04-14_telecom_no-user_gpt-4.1-2025-04-14_4trials.json": {
+   "sha256": "6dd63dc15ffe0b6e4e79434f4d292b1c0af10db3c91c08e152258795852f8dd1",
+   "bytes": 20424962,
+   "git_blob": "adf312d7d06d79e385991a9a6526681631059bd2"
+  },
+  "gpt-4.1-2025-04-14_telecom_op_gpt-4.1-2025-04-14_4trials.json": {
+   "sha256": "16c0bcb5fa4ad621b50141f5f93d73c46557adca86d1894d1686a57603c34f29",
+   "bytes": 27807798,
+   "git_blob": "9f1d32c27e551cdd601950990eb8f5d828489da8"
+  },
+  "gpt-4.1-mini-2025-04-14_airline_base_gpt-4.1-2025-04-14_4trials.json": {
+   "sha256": "41788956547a100fb8e34baf159f36dd1f07f0765798a5fdaf917576c5dba9d0",
+   "bytes": 9781836,
+   "git_blob": "cfd3fc81927dab2ed942251ee5b4066e6a78cb1c"
+  },
+  "gpt-4.1-mini-2025-04-14_retail_base_gpt-4.1-2025-04-14_4trials.json": {
+   "sha256": "6d6badb43b716adca31591b0b40e15fd493b49adddaa8e2c47035bb557549257",
+   "bytes": 23697012,
+   "git_blob": "8a55836aa5e9ed735c9900c0e357b1dd80f71c28"
+  },
+  "gpt-4.1-mini-2025-04-14_telecom_base_gpt-4.1-2025-04-14_4trials.json": {
+   "sha256": "04fad1a6fb3ff8804be31c54cf5a993b64868e37683c226e014e7adbf60841d9",
+   "bytes": 51038687,
+   "git_blob": "dbf2417f7878315b80fc9c9605a9dbf93fe04fd6"
+  },
+  "o4-mini-2025-04-16_airline_default_gpt-4.1-2025-04-14_4trials.json": {
+   "sha256": "6a3a354c9bce42b52905af096e9cea6f555548acbb17b567fd403c356df7b4ec",
+   "bytes": 7599444,
+   "git_blob": "83f3a42988689f8dd1c02c2b4dd7119b2af438a8"
+  },
+  "o4-mini-2025-04-16_retail_default_gpt-4.1-2025-04-14_4trials.json": {
+   "sha256": "7135f38bbbbd46d6babe830574c8623bb276d8fd6da316580b905cf513853f98",
+   "bytes": 22066527,
+   "git_blob": "bfd1be3546169e95d47f49c8b6fdf59e93a20188"
+  },
+  "o4-mini-2025-04-16_telecom-workflow_default_gpt-4.1-2025-04-14_4trials.json": {
+   "sha256": "918bea6c28adb6be4ce308d2897a6549ff06b6852fa2c784143a28c511c7b97f",
+   "bytes": 30948963,
+   "git_blob": "502833b9fac89307a5d2d151bf4377b0cb215082"
+  },
+  "o4-mini-2025-04-16_telecom-workflow_no-user-op_gpt-4.1-2025-04-14_4trials.json": {
+   "sha256": "671b820995cd858a3e3abe3da0f6cf943ad9b95220fafa2c729f2e9d8b8c4160",
+   "bytes": 12643568,
+   "git_blob": "3a1020533aefd786bb5c49989cdf1fec418c3bb0"
+  },
+  "o4-mini-2025-04-16_telecom-workflow_no-user_gpt-4.1-2025-04-14_4trials.json": {
+   "sha256": "9fa6d8bd2dce2c53d3bf500a4ec914e6f13c9ee83827193301bc5fcfd285cdb0",
+   "bytes": 19507680,
+   "git_blob": "825548c770629508762ef02768c9cdfec0f5ff6f"
+  },
+  "o4-mini-2025-04-16_telecom-workflow_op_gpt-4.1-2025-04-14_4trials.json": {
+   "sha256": "c6fc8f601d0bf398d2e06f21aa0b4d832dbfc0998d2b193cd27331578790177d",
+   "bytes": 21110370,
+   "git_blob": "16bf36840afd8bd3bea253124c93991bc2513090"
+  },
+  "o4-mini-2025-04-16_telecom_default_gpt-4.1-2025-04-14_4trials.json": {
+   "sha256": "1f46a6f296694bdb3ae203e6b379cdada0b8f17b648a4cf90d6343de1f1fb070",
+   "bytes": 36801670,
+   "git_blob": "17d091253fb096b00dfa62a1e8858cdbdae1e007"
+  },
+  "o4-mini-2025-04-16_telecom_no-user-op_gpt-4.1-2025-04-14_4trials.json": {
+   "sha256": "e4f0e4827bdd36438f6daf80ceecffe7f9fd175cef80ae1f821422cb4e5743c4",
+   "bytes": 12921123,
+   "git_blob": "ea8c72c5d42699cfb6e81f9bedfeb582e00ddb2b"
+  },
+  "o4-mini-2025-04-16_telecom_no-user_gpt-4.1-2025-04-14_4trials.json": {
+   "sha256": "b9a1310bcd27fdbb04d1a095812791b12f97fde6b3586063613bcd521490e834",
+   "bytes": 19167803,
+   "git_blob": "c2229c815437b5414a51cf84609bb64752f62a21"
+  },
+  "o4-mini-2025-04-16_telecom_op_gpt-4.1-2025-04-14_4trials.json": {
+   "sha256": "b7291c709a0ac3636306355656bcd5f81646b49dc1099454fc392937981a0380",
+   "bytes": 18335869,
+   "git_blob": "491fe17d71a2dd511071d80f8c5dce74f2ed28ee"
+  }
+ },
+ "runs.csv": {
+  "sha256": "a7b198ba04bee6ad53bc4522c05033cc35af3717aeb16d4d79bbb695939a54e1",
+  "bytes": 1712685,
+  "rows": 10832
+ }
+}
