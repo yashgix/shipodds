@@ -7,17 +7,27 @@ import numpy as np
 from promote_or_hold import DATA_DIR
 from promote_or_hold.data import TRIALS, Config, load
 from promote_or_hold.gates import (
-    BASELINE_RULES,
+    FUTILITY,
     NAIVE_PEEK,
     OBRIEN_FLEMING,
     POCOCK,
     ROUNDS,
     RULES,
+    V2_RULES,
     bootstrap_weights,
     sequential_gate,
 )
 from promote_or_hold.pairs import Pair, aa_pairs
-from promote_or_hold.simulate import FIXED_TRIALS, SEED, baseline_outcomes, draw, outcomes, simulate, weights_for
+from promote_or_hold.simulate import (
+    FIXED_TRIALS,
+    SEED,
+    draw,
+    draw_smoothed,
+    outcomes,
+    simulate,
+    v2_outcomes,
+    weights_for,
+)
 
 
 def make_config(model="m", domain="d", mode="default", tasks=("t1", "t2"), rewards=None, costs=None):
@@ -209,7 +219,7 @@ class RealAATest(unittest.TestCase):
             self.assertGreater(metrics["cost_usd"], 0.0)
 
 
-class BaselineTests(unittest.TestCase):
+class V2RuleTests(unittest.TestCase):
     def setUp(self):
         rewards = np.array([[1, 0, 1, 0], [0, 0, 1, 1]], dtype=np.int64)
         self.a = make_config("a", rewards=rewards)
@@ -217,33 +227,62 @@ class BaselineTests(unittest.TestCase):
         self.ya, self.yb, self.cost = draw(self.a, self.b, np.random.default_rng(3), 6)
 
     def test_always_hold_never_promotes_and_costs_nothing(self):
-        decisions, runs, usd = baseline_outcomes(self.ya, self.yb, self.cost)["always_hold"]
+        decisions, runs, usd = v2_outcomes(self.ya, self.yb, self.cost)["always_hold"]
         np.testing.assert_array_equal(decisions, np.full(6, -1))
         np.testing.assert_array_equal(runs, np.zeros(6))
         np.testing.assert_array_equal(usd, np.zeros(6))
 
     def test_naive_peek_is_the_sequential_gate_at_the_fixed_threshold(self):
-        decisions, runs, usd = baseline_outcomes(self.ya, self.yb, self.cost)["naive_peek"]
+        decisions, runs, usd = v2_outcomes(self.ya, self.yb, self.cost)["naive_peek"]
         expected, rounds = sequential_gate(self.ya, self.yb, NAIVE_PEEK)
         np.testing.assert_array_equal(decisions, expected)
         np.testing.assert_array_equal(runs, 2 * 2 * rounds)
         mask = np.arange(ROUNDS)[None, :] < rounds[:, None]
         np.testing.assert_allclose(usd, (self.cost * mask[:, None, :]).sum(axis=(1, 2)))
 
-    def test_simulate_adds_reference_rules_only_when_asked(self):
+    def test_futility_rules_are_obf_with_their_threshold(self):
+        results = v2_outcomes(self.ya, self.yb, self.cost)
+        for rule, threshold in FUTILITY.items():
+            expected, rounds = sequential_gate(self.ya, self.yb, OBRIEN_FLEMING, threshold)
+            np.testing.assert_array_equal(results[rule][0], expected)
+            np.testing.assert_array_equal(results[rule][1], 2 * 2 * rounds)
+
+    def test_simulate_adds_v2_rules_only_when_asked(self):
         configs = {self.a.key: self.a, self.b.key: self.b}
         pair = Pair("model", self.a.key, self.b.key)
         v1 = simulate(configs, pair, 0, replicates=4)
-        both = simulate(configs, pair, 0, replicates=4, baselines=True)
+        both = simulate(configs, pair, 0, replicates=4, v2=True)
         self.assertEqual(list(v1), list(RULES))
-        self.assertEqual(list(both), list(RULES + BASELINE_RULES))
+        self.assertEqual(list(both), list(RULES + V2_RULES))
         self.assertEqual({rule: both[rule] for rule in RULES}, v1)
 
     def test_peeking_inflates_false_promotions_on_an_identical_copy(self):
         # Every task passes half its trials, and both arms are the same agent.
         config = make_config(tasks=[f"t{i}" for i in range(100)], rewards=np.tile([1, 0, 1, 0], (100, 1)))
         ya, yb, cost = draw(config, config, np.random.default_rng(11), 4000)
-        peek = np.mean(baseline_outcomes(ya, yb, cost)["naive_peek"][0] == 1)
+        peek = np.mean(v2_outcomes(ya, yb, cost)["naive_peek"][0] == 1)
         obf = np.mean(outcomes(ya, yb, cost, weights_for(100))["sequential_obf"][0] == 1)
         self.assertLess(abs(obf - 0.025), 0.01)
         self.assertGreater(peek, 0.045)
+
+
+class SmoothedTests(unittest.TestCase):
+    def setUp(self):
+        costs = np.array([[1.0, 3.0, 1.0, 3.0], [2.0, 2.0, 2.0, 2.0]])
+        self.a = make_config("a", rewards=np.zeros((2, TRIALS)), costs=costs)
+        self.b = make_config("b", rewards=np.array([[1, 1, 1, 1], [1, 0, 1, 0]]), costs=costs)
+
+    def test_rates_and_costs(self):
+        ya, yb, cost = draw_smoothed(self.a, self.b, np.random.default_rng(5), 20000)
+        self.assertEqual(ya.shape, (20000, 2, ROUNDS))
+        np.testing.assert_allclose(ya.mean(axis=(0, 2)), [0.1, 0.1], atol=0.01)
+        np.testing.assert_allclose(yb.mean(axis=(0, 2)), [0.9, 0.5], atol=0.01)
+        np.testing.assert_array_equal(cost[0, :, 0], [4.0, 4.0])
+
+    def test_simulate_uses_a_separate_stream(self):
+        configs = {self.a.key: self.a, self.b.key: self.b}
+        pair = Pair("model", self.a.key, self.b.key)
+        recorded = simulate(configs, pair, 0, replicates=50)
+        smoothed = simulate(configs, pair, 0, replicates=50, smoothed=True)
+        self.assertEqual(smoothed, simulate(configs, pair, 0, replicates=50, smoothed=True))
+        self.assertNotEqual(recorded["mean_1"], smoothed["mean_1"])

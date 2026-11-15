@@ -10,18 +10,11 @@ import numpy as np
 
 from promote_or_hold import DATA_DIR
 from promote_or_hold.data import TRIALS, Config
-from promote_or_hold.gates import BASELINE_RULES, RULES
+from promote_or_hold.gates import ALL_RULES, RULES
 from promote_or_hold.pairs import Pair
-from promote_or_hold.run import (
-    ERROR_CAP,
-    POWER_SLACK,
-    V2_NAME,
-    distinct_comparisons,
-    full_cost,
-    main,
-    recommend,
-    recorded_decision,
-)
+from promote_or_hold.robustness import Replay
+from promote_or_hold.run import V2_NAME, full_cost, main, recommend, recorded_decision
+from promote_or_hold.summary import ERROR_CAP, POWER_SLACK, distinct_comparisons
 
 
 def make_config(model="m", rewards=None, costs=None):
@@ -228,9 +221,10 @@ class ControlledMainTests(unittest.TestCase):
                 "cost_usd": float((position + 1) + 0.1 * index),
             }
 
-        def fake_simulate(configs, pair, index, replicates, baselines):
-            self.assertTrue(baselines)
-            return {rule: summary(index, position) for position, rule in enumerate(RULES + BASELINE_RULES)}
+        def fake_simulate(configs, pair, index, replicates, v2, smoothed):
+            self.assertTrue(v2)
+            shift = 100 if smoothed else 0
+            return {rule: summary(index + shift, position) for position, rule in enumerate(ALL_RULES)}
 
         def fake_cost(configs, pair):
             del configs, pair
@@ -252,27 +246,28 @@ class ControlledMainTests(unittest.TestCase):
                 mock.patch("promote_or_hold.run.aa_pairs", return_value=copies),
                 mock.patch("promote_or_hold.run.simulate", side_effect=fake_simulate) as simulate_mock,
                 mock.patch("promote_or_hold.run.delta", side_effect=[0.0, -0.1, 0.2]),
-                mock.patch("promote_or_hold.run.full_cost", side_effect=[10.0, 20.0, 30.0]),
+                mock.patch("promote_or_hold.run.full_cost", side_effect=[10.0, 20.0, 30.0, 4.0, 6.0]),
                 mock.patch("promote_or_hold.run.recorded_decision", side_effect=[1, -1, 0]),
-                mock.patch("promote_or_hold.run.delta", side_effect=[0.0, -0.1, 0.2]),
-                mock.patch("promote_or_hold.run.full_cost", side_effect=[10.0, 20.0, 30.0]),
-                mock.patch("promote_or_hold.run.recorded_decision", side_effect=[1, -1, 0]),
+                mock.patch("promote_or_hold.run.v2_metrics", return_value={"v2": 1.0}) as v2_mock,
             ):
                 main("ignored", out, replicates=3)
             metrics = json.loads(out.read_text())
             v2 = json.loads(out.with_name(V2_NAME).read_text())
 
-        self.assertEqual(v2["rules"], list(BASELINE_RULES))
-        self.assertEqual(v2["distinct_comparisons"], 2)
-        first_baseline = len(RULES)
-        self.assertAlmostEqual(v2["better_promote"][0], summary(2, first_baseline)["promote"])
-        self.assertAlmostEqual(
-            v2["aa_promote"][1],
-            (summary(3, first_baseline + 1)["promote"] + summary(4, first_baseline + 1)["promote"]) / 2,
+        self.assertEqual(v2, {"v2": 1.0})
+        replays, passed_real, passed_copies = v2_mock.call_args.args
+        self.assertEqual((passed_real, passed_copies), (real, copies))
+        self.assertEqual(set(replays), {"recorded", "smoothed"})
+        recorded = replays["recorded"]
+        self.assertIsInstance(recorded, Replay)
+        self.assertEqual(
+            (recorded.deltas, recorded.real_costs, recorded.aa_costs),
+            ([0.0, -0.1, 0.2], [10.0, 20.0, 30.0], [4.0, 6.0]),
         )
-        self.assertEqual(len(v2["cost_share"]), len(BASELINE_RULES))
+        self.assertEqual(recorded.aa[0]["mean_1"], summary(3, 0))
+        self.assertEqual(replays["smoothed"].real[0]["mean_1"], summary(100, 0))
 
-        self.assertEqual([call.args[2] for call in simulate_mock.call_args_list], [0, 1, 2, 3, 4])
+        self.assertEqual([call.args[2] for call in simulate_mock.call_args_list], [0, 1, 2, 3, 4] * 2)
         self.assertEqual(metrics["configs"], 2)
         self.assertEqual(metrics["runs_recorded"], 20)
         self.assertEqual(metrics["pairs"], 3)

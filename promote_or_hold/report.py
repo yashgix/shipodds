@@ -1,7 +1,7 @@
 """Render README results and the one-line demo summary from metrics.json and metrics_v2.json."""
 
 from .data import load
-from .gates import RULES
+from .gates import FUTILITY, RULES
 from .pairs import real_pairs
 
 MODEL_NAMES = {
@@ -24,8 +24,28 @@ TRADEOFF_RULES = (
     "naive_peek",
     "sequential_pocock",
     "sequential_obf",
+    *FUTILITY,
 )
-TRADEOFF_KEYS = ("aa_promote", "worse_promote", "better_promote", "better_hold", "better_inconclusive", "cost_share")
+TRADEOFF_KEYS = (
+    "aa_promote",
+    "worse_promote",
+    "better_promote",
+    "better_hold",
+    "better_inconclusive",
+    "cost_share",
+    "aa_cost_share",
+)
+TRADEOFF_HEADER = (
+    "Identical copy promoted",
+    "Worse promoted",
+    "Better promoted (power)",
+    "Better held (false rejection)",
+    "Better inconclusive (incumbent kept)",
+    "Cost, real pairs",
+    "Cost, identical copies",
+)
+FOLD_KEYS = ("aa_promote", "worse_promote", "better_promote", "better_hold", "cost_share", "aa_cost_share")
+CHECK_RULES = ("mean_1", "cmh_1", "cmh_4", "sequential_obf")
 
 
 def short_model(model):
@@ -71,7 +91,7 @@ def results_paragraph(metrics):
     """Return the short paragraph that opens the generated results block."""
     return (
         f"Across {metrics['pairs']} candidate/incumbent pairs ({metrics['configs']} configs, "
-        f"{metrics['runs_recorded']:,} recorded runs; {metrics['aa_pairs']} identical-copy pairs), "
+        f"{metrics['runs_recorded']:,} recorded runs, and {metrics['aa_pairs']} identical-copy pairs), "
         f"each gate was replayed {metrics['replicates']:,} times. A full {metrics['max_rounds']}-trial "
         f"evaluation of both arms costs ${metrics['full_cost_usd']:,.2f} on average. The full recorded "
         f"evaluation promotes {metrics['recorded_promote']} pairs, holds {metrics['recorded_hold']}, "
@@ -89,6 +109,13 @@ def _real_inconclusive(metrics, position):
     return weighted / total
 
 
+def table(header, rows):
+    """Return a markdown table."""
+    lines = ["| " + " | ".join(header) + " |", "|" + "|".join(["---"] * len(header)) + "|"]
+    lines.extend("| " + " | ".join(row) + " |" for row in rows)
+    return "\n".join(lines)
+
+
 def rule_table(metrics):
     """Return the per-rule markdown table."""
     header = (
@@ -101,7 +128,7 @@ def rule_table(metrics):
         "Cost per decision",
         "Share of full evaluation",
     )
-    lines = ["| " + " | ".join(header) + " |", "|" + "|".join(["---"] * len(header)) + "|"]
+    rows = []
     chosen = metrics["recommended_rule"]
     for position, rule in enumerate(RULES):
         label = f"**{rule}** (recommended)" if position == chosen else rule
@@ -115,8 +142,8 @@ def rule_table(metrics):
             f"${metrics['mean_cost_usd'][position]:,.2f}",
             pct(metrics["cost_share"][position]),
         )
-        lines.append("| " + " | ".join(row) + " |")
-    return "\n".join(lines)
+        rows.append(row)
+    return table(header, rows)
 
 
 def pair_table(metrics, pairs=None):
@@ -155,71 +182,147 @@ def pair_table(metrics, pairs=None):
             )
         )
     rows.sort(key=lambda row: (-row[0], row[1]))
-    lines = ["| " + " | ".join(header) + " |", "|" + "|".join(["---"] * len(header)) + "|"]
-    lines.extend("| " + " | ".join(row[2]) + " |" for row in rows)
-    return "\n".join(lines)
+    return table(header, [row[2] for row in rows])
 
 
-def rule_view(metrics, v2):
-    """Return {rule: {key: value}} for the trade-off keys over the v1 rules and the v2 reference rules."""
-    rules = (*RULES, *v2["rules"])
-    return {rule: {key: (metrics[key] + v2[key])[i] for key in TRADEOFF_KEYS} for i, rule in enumerate(rules)}
+def _span(values):
+    low, high = pct(min(values)), pct(max(values))
+    return low if low == high else f"{low} to {high}"
 
 
-def headline(metrics, v2):
-    """Return the generated headline: the two effects, the peeking check, and what safety costs in power."""
-    view = rule_view(metrics, v2)
-    mean, test, fixed, seq, peek = (view[r] for r in ("mean_1", "cmh_1", "cmh_4", "sequential_obf", "naive_peek"))
+def _at(metrics, v2, rule, key):
+    return metrics[key][v2["rules"].index(rule)]
+
+
+def headline(v2):
+    """Return the generated headline: the held-out check first, then the two in-sample effects."""
+    folds = v2["folds"]
+    picks = sorted({fold["pick"] for fold in folds})
+
+    def held(rule, key):
+        return _span([_at(fold, v2, rule if rule else fold["pick"], key) for fold in folds])
+
+    loss = max(_at(f, v2, "cmh_4", "better_promote") - _at(f, v2, f["pick"], "better_promote") for f in folds)
     return (
-        "**Two separate effects.** A proper test instead of the mean gate is what lowers false promotions. "
-        f"With one trial per task and the same cost, mean_1 promotes an identical copy {pct(mean['aa_promote'])} "
-        f"of the time and cmh_1 {pct(test['aa_promote'])}. A sequential test instead of a fixed one is what lowers "
-        f"cost. sequential_obf promotes {pct(seq['better_promote'])} of truly better candidates against "
-        f"{pct(fixed['better_promote'])} for cmh_4, at {pct(seq['cost_share'])} of a full evaluation's cost "
-        f"instead of {pct(fixed['cost_share'])}. Both promote an identical copy about as often "
-        f"({pct(seq['aa_promote'])} and {pct(fixed['aa_promote'])}). The sequential boundaries matter: checking "
-        f"the fixed test after every round (naive_peek) promotes an identical copy {pct(peek['aa_promote'])} of "
-        f"the time. Its better power ({pct(peek['better_promote'])}) and lower cost ({pct(peek['cost_share'])}) "
-        "come from that looser error rate. Safety costs power: mean_1 promotes "
-        f"{pct(mean['better_promote'])} of better candidates, "
-        f"sequential_obf {pct(seq['better_promote'])}, and always_hold none."
+        f"**Held out by domain.** Picking the rule on two domains and scoring it on the third, the v1 selection "
+        f"procedure picks {' or '.join(picks)} in each of the {len(folds)} folds. On the held-out domain the pick "
+        f"promotes an identical copy {held(None, 'aa_promote')} of the time (cmh_4: {held('cmh_4', 'aa_promote')}). "
+        f"It promotes {held(None, 'better_promote')} of better candidates against {held('cmh_4', 'better_promote')} "
+        f"for the fixed four-trial cmh_4, at most {100 * loss:.1f} points fewer. It costs {held(None, 'cost_share')} "
+        f"of a full evaluation on real pairs and {held(None, 'aa_cost_share')} on identical copies. The one-shot "
+        f"cmh_1, at a quarter of the cost, promotes only {held('cmh_1', 'better_promote')} of better candidates.\n\n"
+        + effects(v2)
+    )
+
+
+def effects(v2):
+    """Return the in-sample paragraph that separates the two effects and the peeking check."""
+
+    def at(rule, key):
+        return pct(_at(v2, v2, rule, key))
+
+    return (
+        "**Two separate effects** (all pairs, in sample). A proper test instead of the mean gate is what lowers "
+        f"false promotions. With one trial per task and the same cost, mean_1 promotes an identical copy "
+        f"{at('mean_1', 'aa_promote')} of the time and cmh_1 {at('cmh_1', 'aa_promote')}. A sequential test instead "
+        f"of a fixed one is what lowers cost. sequential_obf promotes {at('sequential_obf', 'better_promote')} of "
+        f"better candidates against {at('cmh_4', 'better_promote')} for cmh_4, at {at('sequential_obf', 'cost_share')} "
+        f"of the cost, but {at('sequential_obf', 'aa_cost_share')} on identical copies, where it rarely stops early. "
+        "Futility stops target that case. Checking the fixed test after every round "
+        f"(naive_peek) promotes an identical copy {at('naive_peek', 'aa_promote')} of the time. Its power "
+        f"({at('naive_peek', 'better_promote')}) and cost ({at('naive_peek', 'cost_share')}) come from that looser "
+        "error rate."
     )
 
 
 def caveat(metrics, v2):
     """Return the paragraph that says how far the numbers can be trusted."""
-    return (
-        f"The {metrics['pairs']} pairs are only {v2['distinct_comparisons']} distinct comparisons, each counted in "
-        "both directions, and some configs appear in several comparisons, so the group rates are not "
-        f"{metrics['pairs']} independent measurements. The recommended rule was picked on these same results, by a "
-        "rule whose caps were set after a prototype run on the same data. It has not been checked on held-out data."
+    folds = v2["folds"]
+    sizes = ", ".join(f"{f['held_out']} {f['distinct_comparisons']} and {f['aa_pairs']}" for f in folds)
+    text = (
+        f"**How small this is.** The {metrics['pairs']} pairs are only {v2['distinct_comparisons']} distinct "
+        "comparisons, each counted in both directions, and some configs appear in several comparisons. Each held-out "
+        f"domain has few distinct comparisons and identical-copy pairs ({sizes}). There are only {len(folds)} folds, "
+        "and no interval is given. The v1 recommended rule was picked on all the data, with caps set after a "
+        "prototype run on the same data."
     )
+    largest = list(FUTILITY)[-1]
+    if all(fold["pick"] == largest for fold in folds):
+        text += (
+            f" Every fold picked the largest futility threshold tried ({largest}), so the power slack, not the data, "
+            "sets how aggressive the stop is."
+        )
+    return text
 
 
-def tradeoff_table(metrics, v2):
+def tradeoff_table(v2):
     """Return the side-by-side table of false promotions, power, false rejections and cost."""
-    header = (
-        "Rule",
-        "Identical copy promoted",
-        "Worse promoted",
-        "Better promoted (power)",
-        "Better held (false rejection)",
-        "Better inconclusive (incumbent kept)",
-        "Share of full evaluation",
-    )
-    view = rule_view(metrics, v2)
-    lines = ["| " + " | ".join(header) + " |", "|" + "|".join(["---"] * len(header)) + "|"]
-    for rule in TRADEOFF_RULES:
-        lines.append("| " + " | ".join((rule, *(pct(view[rule][key]) for key in TRADEOFF_KEYS))) + " |")
-    return "\n".join(lines)
+    rows = [(rule, *(pct(_at(v2, v2, rule, key)) for key in TRADEOFF_KEYS)) for rule in TRADEOFF_RULES]
+    return table(("Rule", *TRADEOFF_HEADER), rows)
+
+
+def fold_table(v2):
+    """Return the held-out table: each fold's pick and the fixed tests, scored on the held-out domain."""
+    header = ("Held out", "Rule", *(TRADEOFF_HEADER[TRADEOFF_KEYS.index(key)] for key in FOLD_KEYS))
+    rows = []
+    for fold in v2["folds"]:
+        for rule in (fold["pick"], "sequential_obf", "cmh_4", "cmh_1"):
+            label = f"{rule} (pick)" if rule == fold["pick"] else rule
+            rows.append((fold["held_out"], label, *(pct(_at(fold, v2, rule, key)) for key in FOLD_KEYS)))
+    return table(header, rows)
+
+
+def difference_table(v2):
+    """Return power by size of the true difference, for better pairs."""
+    bins = v2["power_by_difference"]
+    edges = [round(100 * edge) for edge in bins["edges"]]
+    header = [
+        f"+{low} to {high} pts ({n} pairs)" for low, high, n in zip(edges, edges[1:], bins["pairs"], strict=False)
+    ]
+    rules = (*CHECK_RULES, v2["pick"])
+    rows = [(rule, *map(pct, bins["better_promote"][v2["rules"].index(rule)])) for rule in rules]
+    return table(("Rule", *header), rows)
+
+
+def smoothed_table(v2):
+    """Return recorded against smoothed-noise results for the main rules."""
+    smoothed = v2["smoothed"]
+    keys = ("aa_promote", "worse_promote", "better_promote", "cost_share")
+    header = ("Rule", *(f"{TRADEOFF_HEADER[TRADEOFF_KEYS.index(key)]}, recorded / smoothed" for key in keys))
+    rows = [
+        (rule, *(f"{pct(_at(v2, v2, rule, key))} / {pct(_at(smoothed, v2, rule, key))}" for key in keys))
+        for rule in (*CHECK_RULES, v2["pick"])
+    ]
+    return table(header, rows) + f"\n\nThe smoothed world picks {smoothed['pick']}."
+
+
+def grid_table(v2):
+    """Return the pick for each error cap (rows) and power slack (columns)."""
+    grid = v2["pick_grid"]
+    header = ("Error cap", *(f"slack {round(100 * slack)} pts" for slack in grid["power_slack"]))
+    rows = [
+        (pct(cap), *(rule or "none" for rule in picks))
+        for cap, picks in zip(grid["error_cap"], grid["pick"], strict=True)
+    ]
+    return table(header, rows)
 
 
 def results_block(metrics, v2, pairs=None):
     """Return the complete text that belongs between the README markers."""
     parts = (
-        headline(metrics, v2),
+        headline(v2),
         caveat(metrics, v2),
-        tradeoff_table(metrics, v2),
+        "**All pairs, every rule that matters for the headline.**",
+        tradeoff_table(v2),
+        "**Held out by domain.** Picked on the other two domains, scored on this one.",
+        fold_table(v2),
+        "**Power by true difference** (better pairs, all domains).",
+        difference_table(v2),
+        "**Smoothed-noise world.** Each task's pass rate is (successes + 0.5) / 5 and trials are drawn fresh.",
+        smoothed_table(v2),
+        "**How the pick moves with the caps** (all domains).",
+        grid_table(v2),
+        "**v1 results.**",
         results_paragraph(metrics),
         rule_table(metrics),
         pair_table(metrics, pairs),

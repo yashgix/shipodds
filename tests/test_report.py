@@ -3,19 +3,23 @@
 import unittest
 from pathlib import Path
 
-from promote_or_hold.gates import RULES
-from promote_or_hold.pairs import Pair
+from promote_or_hold.gates import ALL_RULES, FUTILITY, RULES
+from promote_or_hold.pairs import DOMAINS, Pair
 from promote_or_hold.report import (
     MARKER_END,
     MARKER_START,
     TRADEOFF_RULES,
     caveat,
+    difference_table,
+    fold_table,
+    grid_table,
     headline,
     pair_table,
     pct,
     replace_results,
     results_paragraph,
     rule_table,
+    smoothed_table,
     summary_line,
     tradeoff_table,
 )
@@ -93,36 +97,88 @@ def make_metrics():
     return metrics
 
 
+PER_RULE_KEYS = (
+    "aa_promote",
+    "worse_promote",
+    "better_promote",
+    "better_hold",
+    "better_inconclusive",
+    "cost_share",
+    "aa_cost_share",
+)
+
+
+def rule_lists(value):
+    return {key: [value] * len(ALL_RULES) for key in PER_RULE_KEYS}
+
+
+def set_rate(metrics, rule, key, value):
+    metrics[key][ALL_RULES.index(rule)] = value
+
+
 def make_v2():
-    v2 = {"rules": ["always_hold", "naive_peek"], "distinct_comparisons": 2}
-    for key in ("aa_promote", "worse_promote", "better_promote", "better_inconclusive", "cost_share"):
-        v2[key] = [0.0, 0.062]
-    v2["better_hold"] = [1.0, 0.05]
+    largest = list(FUTILITY)[-1]
+    v2 = {"rules": list(ALL_RULES), "distinct_comparisons": 26, "pick": largest, **rule_lists(0.1)}
+    v2["folds"] = []
+    for held_out, power in zip(DOMAINS, (0.3, 0.6, 0.8), strict=True):
+        fold = {"held_out": held_out, "pairs": 12, "distinct_comparisons": 6, "aa_pairs": 4, "pick": largest}
+        fold |= rule_lists(0.5)
+        set_rate(fold, "cmh_4", "better_promote", power + 0.04)
+        set_rate(fold, largest, "better_promote", power)
+        v2["folds"].append(fold)
+    v2["smoothed"] = {**rule_lists(0.3), "pick": "cmh_4"}
+    v2["power_by_difference"] = {
+        "edges": [0.0, 0.03, 0.06, 0.1, 0.2],
+        "pairs": [5, 5, 10, 6],
+        "better_promote": [[0.5] * 4 for _ in ALL_RULES],
+    }
+    v2["pick_grid"] = {"error_cap": [0.05], "power_slack": [0.0, 0.05], "pick": [["cmh_4", None]]}
+    set_rate(v2, "mean_1", "aa_promote", 0.439)
+    set_rate(v2, "cmh_1", "aa_promote", 0.023)
+    set_rate(v2, "naive_peek", "aa_promote", 0.062)
     return v2
 
 
 class V2TextTests(unittest.TestCase):
     def setUp(self):
         self.metrics = make_metrics()
-        self.metrics["aa_promote"][RULES.index("cmh_1")] = 0.023
-        self.metrics["better_promote"][RULES.index("sequential_obf")] = 0.692
         self.v2 = make_v2()
 
+    def test_headline_reports_the_held_out_folds_first(self):
+        text = headline(self.v2)
+        self.assertTrue(text.startswith("**Held out by domain.**"))
+        self.assertIn("picks obf_futility_1.0 in each of the 3 folds", text)
+        self.assertIn("promotes 30.0% to 80.0% of better candidates against 34.0% to 84.0%", text)
+        self.assertIn("at most 4.0 points fewer", text)
+
     def test_headline_names_both_effects_and_the_peeking_rate(self):
-        text = headline(self.metrics, self.v2)
-        for fragment in ("mean_1 promotes an identical copy 43.9%", "cmh_1 2.3%", "sequential_obf promotes 69.2%"):
+        text = headline(self.v2)
+        for fragment in ("mean_1 promotes an identical copy 43.9%", "cmh_1 2.3%", "promotes an identical copy 6.2%"):
             self.assertIn(fragment, text)
-        self.assertIn("(naive_peek) promotes an identical copy 6.2%", text)
-        self.assertIn("Its better power (6.2%) and lower cost (6.2%)", text)
 
-    def test_caveat_counts_distinct_comparisons(self):
-        self.assertIn("3 pairs are only 2 distinct comparisons", caveat(self.metrics, self.v2))
+    def test_caveat_counts_and_flags_the_grid_edge(self):
+        text = caveat(self.metrics, self.v2)
+        self.assertIn("3 pairs are only 26 distinct comparisons", text)
+        self.assertIn("airline 6 and 4", text)
+        self.assertIn("largest futility threshold tried", text)
+        self.v2["folds"][0]["pick"] = "cmh_4"
+        self.assertNotIn("largest futility threshold tried", caveat(self.metrics, self.v2))
 
-    def test_tradeoff_table_rows_and_reference_rules(self):
-        table = tradeoff_table(self.metrics, self.v2)
-        rows = [line for line in table.splitlines() if line.startswith("| ")][1:]
+    def test_tradeoff_table_rows(self):
+        rows = [line for line in tradeoff_table(self.v2).splitlines() if line.startswith("| ")][1:]
         self.assertEqual([row.split("|")[1].strip() for row in rows], list(TRADEOFF_RULES))
-        self.assertEqual(rows[0], "| always_hold | 0.0% | 0.0% | 0.0% | 100.0% | 0.0% | 0.0% |")
+        self.assertTrue(rows[0].startswith("| always_hold | 10.0% |"))
+
+    def test_fold_table_marks_each_pick(self):
+        rows = [line for line in fold_table(self.v2).splitlines() if line.startswith("| ")][1:]
+        self.assertEqual(len(rows), 12)
+        self.assertEqual(sum("(pick)" in row for row in rows), 3)
+
+    def test_other_tables(self):
+        self.assertIn("+0 to 3 pts (5 pairs)", difference_table(self.v2))
+        self.assertIn("10.0% / 30.0%", smoothed_table(self.v2))
+        self.assertIn("The smoothed world picks cmh_4.", smoothed_table(self.v2))
+        self.assertIn("| 5.0% | cmh_4 | none |", grid_table(self.v2))
 
 
 class PercentTests(unittest.TestCase):

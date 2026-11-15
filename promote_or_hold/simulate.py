@@ -6,6 +6,7 @@ import numpy as np
 
 from .data import TRIALS
 from .gates import (
+    FUTILITY,
     NAIVE_PEEK,
     OBRIEN_FLEMING,
     POCOCK,
@@ -60,34 +61,52 @@ def outcomes(ya, yb, cost, weights):
     return {rule: results[rule] for rule in RULES}
 
 
-def baseline_outcomes(ya, yb, cost):
-    """Run the v2 reference rules: always hold, and a fixed CMH test checked after every round."""
+def v2_outcomes(ya, yb, cost):
+    """Run the v2 rules: O'Brien-Fleming with futility stops, always hold, and a fixed test checked every round."""
     replicates = ya.shape[0]
     nothing = np.zeros(replicates, dtype=np.int64)
-    return {
-        "always_hold": (always_hold_gate(replicates), nothing, nothing.astype(float)),
-        "naive_peek": _sequential(ya, yb, cost, NAIVE_PEEK),
-    }
+    results = {rule: _sequential(ya, yb, cost, OBRIEN_FLEMING, threshold) for rule, threshold in FUTILITY.items()}
+    results["always_hold"] = (always_hold_gate(replicates), nothing, nothing.astype(float))
+    results["naive_peek"] = _sequential(ya, yb, cost, NAIVE_PEEK)
+    return results
 
 
-def _sequential(ya, yb, cost, bounds):
-    decisions, rounds_used = sequential_gate(ya, yb, bounds)
+def _sequential(ya, yb, cost, bounds, futility=-np.inf):
+    decisions, rounds_used = sequential_gate(ya, yb, bounds, futility)
     mask = np.arange(ROUNDS)[None, :] < rounds_used[:, None]
     usd = (cost * mask[:, None, :]).sum(axis=(1, 2))
     return decisions, 2 * ya.shape[1] * rounds_used, usd
 
 
-def simulate(configs, pair, index, replicates=REPLICATES, baselines=False):
-    """Replay every rule (and, if asked, the reference rules) on one pair and summarize decisions, runs and cost."""
+def draw_smoothed(a, b, rng, replicates):
+    """Draw fresh trials at each task's smoothed pass rate, (successes + 0.5) / (TRIALS + 1), at its mean cost."""
+    shape = (replicates, len(a.tasks), ROUNDS)
+    ya = (rng.random(shape) < _smoothed_rate(a)[None, :, None]).astype(np.int64)
+    yb = (rng.random(shape) < _smoothed_rate(b)[None, :, None]).astype(np.int64)
+    cost = np.broadcast_to((a.costs.mean(axis=1) + b.costs.mean(axis=1))[None, :, None], shape)
+    return ya, yb, cost
+
+
+def _smoothed_rate(config):
+    return (config.rewards.sum(axis=1) + 0.5) / (TRIALS + 1)
+
+
+def simulate(configs, pair, index, replicates=REPLICATES, v2=False, smoothed=False):
+    """Replay every rule (and, if asked, the v2 rules) on one pair and summarize decisions, runs and cost.
+
+    With smoothed=True, trials come from draw_smoothed on a separate random stream instead of the recorded trials.
+    """
     a = configs[pair.incumbent]
     b = configs[pair.candidate]
     if a.tasks != b.tasks:
         raise ValueError(f"{pair.incumbent} and {pair.candidate} have different tasks")
-    rng = np.random.default_rng([SEED, 1, index])
-    ya, yb, cost = draw(a, b, rng, replicates)
+    if smoothed:
+        ya, yb, cost = draw_smoothed(a, b, np.random.default_rng([SEED, 2, index]), replicates)
+    else:
+        ya, yb, cost = draw(a, b, np.random.default_rng([SEED, 1, index]), replicates)
     results = outcomes(ya, yb, cost, weights_for(len(a.tasks)))
-    if baselines:
-        results |= baseline_outcomes(ya, yb, cost)
+    if v2:
+        results |= v2_outcomes(ya, yb, cost)
     summary = {}
     for rule, (decisions, runs, usd) in results.items():
         summary[rule] = {

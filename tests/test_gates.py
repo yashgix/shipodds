@@ -5,13 +5,17 @@ import unittest
 import numpy as np
 
 from promote_or_hold.gates import (
+    ALL_RULES,
     BASELINE_RULES,
     BOOTSTRAP_DRAWS,
+    FUTILITY,
+    FUTILITY_LOOKS,
     NAIVE_PEEK,
     OBRIEN_FLEMING,
     POCOCK,
     ROUNDS,
     RULES,
+    SELECTABLE,
     Z_95,
     always_hold_gate,
     bootstrap_gate,
@@ -132,6 +136,19 @@ class ReferenceRuleTests(unittest.TestCase):
         self.assertEqual(BASELINE_RULES, ("always_hold", "naive_peek"))
         self.assertFalse(set(BASELINE_RULES) & set(RULES))
         self.assertEqual(NAIVE_PEEK, (Z_95,) * ROUNDS)
+
+    def test_rule_lists(self):
+        self.assertEqual(ALL_RULES, RULES + tuple(FUTILITY) + BASELINE_RULES)
+        self.assertEqual(SELECTABLE, ALL_RULES[: len(SELECTABLE)])
+        self.assertEqual(FUTILITY_LOOKS, (2, 3))
+
+    def test_futility_holds_at_looks_two_and_three_only(self):
+        ya = np.zeros((1, 4, 4), dtype=np.int64)
+        yb = np.zeros((1, 4, 4), dtype=np.int64)
+        ya[0, 0, :] = 1  # the incumbent wins one task every round, so z is negative but above -bounds
+        self.assertEqual(sequential_gate(ya, yb, OBRIEN_FLEMING)[1].tolist(), [4])
+        decisions, rounds = sequential_gate(ya, yb, OBRIEN_FLEMING, futility=0.0)
+        self.assertEqual((decisions.tolist(), rounds.tolist()), ([-1], [2]))
 
     def test_always_hold(self):
         np.testing.assert_array_equal(always_hold_gate(3), [-1, -1, -1])

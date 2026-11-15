@@ -20,9 +20,14 @@ RULES = (
     "sequential_pocock",
     "sequential_obf",
 )
-# Reference rules added in v2 (SPEC-v2.md). They are reported next to RULES but never recommended.
+# v2 rules (SPEC-v2.md). Futility rules may be selected. Reference rules are reported but never selected.
+FUTILITY_LOOKS = (2, 3)
+FUTILITY = {"obf_futility_0.0": 0.0, "obf_futility_0.5": 0.5, "obf_futility_1.0": 1.0}
 BASELINE_RULES = ("always_hold", "naive_peek")
 NAIVE_PEEK = (Z_95,) * ROUNDS
+V2_RULES = (*FUTILITY, *BASELINE_RULES)
+ALL_RULES = RULES + V2_RULES
+SELECTABLE = RULES + tuple(FUTILITY)
 
 
 def mean_gate(sa, sb):
@@ -75,8 +80,11 @@ def cmh_gate(sa, sb, k):
     return np.where(z >= Z_95, 1, np.where(z <= -Z_95, -1, 0)).astype(np.int64)
 
 
-def sequential_gate(ya, yb, bounds):
-    """Group-sequential gate: decide at the first look that crosses a boundary."""
+def sequential_gate(ya, yb, bounds, futility=-np.inf):
+    """Group-sequential gate: decide at the first look that crosses a boundary.
+
+    With a futility threshold, a replicate whose z is below it at a look in FUTILITY_LOOKS stops and holds.
+    """
     ya = np.asarray(ya)
     yb = np.asarray(yb)
     replicates = ya.shape[0]
@@ -90,7 +98,7 @@ def sequential_gate(ya, yb, bounds):
         sb = yb[:, :, :r].sum(axis=2)
         z = cmh_z(sa, sb, r)
         promote = undecided & (z >= bounds[r - 1])
-        hold = undecided & (z <= -bounds[r - 1])
+        hold = undecided & ((z <= -bounds[r - 1]) | ((r in FUTILITY_LOOKS) & (z < futility)))
         decisions[promote] = 1
         decisions[hold] = -1
         decided = promote | hold
