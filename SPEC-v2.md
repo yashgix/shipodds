@@ -1,7 +1,7 @@
 # promote-or-hold, v2 changes
 
-`SPEC.md` is the v1 specification and stays as written. This file lists what v2 adds, why, and which v1 behaviour
-it changes. Everything not named here behaves as in `SPEC.md`, and the v1 acceptance tests in `tests/acceptance/`
+The v1 specification (not included in this repository) stays as written. This file lists what v2 adds, why, and which v1 behaviour
+it changes. Everything not named here behaves as in v1, and the v1 acceptance tests in `tests/acceptance/`
 pass unchanged. `results/metrics.json` stays byte-identical to v1.
 
 ## Why

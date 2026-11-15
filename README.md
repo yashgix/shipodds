@@ -2,6 +2,8 @@
 
 **How often a promotion gate ships a worse agent, and what a safer gate costs.**
 
+Write-up with charts: <https://yashgix.github.io/promote-or-hold/>
+
 A team that runs AI agents in production changes them all the time: a new model, a new prompt, a new policy. Each
 change goes through a *promotion gate*. It runs the candidate and the current version (the incumbent) on an
 evaluation suite, then promotes the candidate or keeps the incumbent. Agent runs are noisy. The same agent on the
@@ -37,6 +39,16 @@ directions. They promote regressions, and they burn budget on evaluations that c
 Making the rule explicit turns both failure modes into measurable quantities. That is what this repository does. It
 takes one decision rule at a time, replays it on trials that were actually recorded, and reports the error rates and
 the cost.
+
+## A short example
+
+```bash
+$ python demo.py
+mean_1 promotes an identical copy 43.9% of the time; the recommended rule (sequential_obf) 2.4%, at 71.5% of a full evaluation's cost.
+```
+
+An identical copy of an agent is never better, so every promotion of one is a mistake. The "higher mean wins" gate
+with one trial per task makes that mistake in 44 of 100 evaluations. A stratified test at the same cost makes it in 2.
 
 ## The data
 
@@ -75,11 +87,12 @@ python tools/fetch_data.py --source DIR  # rebuild from a local copy of the upst
 
 ## How to run
 
-Python 3.14 with NumPy. The `ml-py314` environment has both.
+Python 3.14 and NumPy 2.5.4 (`pip install numpy==2.5.4 ruff`).
 
 ```bash
 make test                                         # own tests and the v1 acceptance tests
 make lint                                         # ruff check + format check
+make experiment                                   # rerun the experiment, rewrite results/metrics.json
 python experiment.py --out results/metrics.json   # replay every gate on every pair, in both worlds
 python demo.py                                    # one-line summary of results/metrics.json
 python demo.py --readme README.md --out README.md # render the results block below
@@ -333,8 +346,21 @@ promote_or_hold/   data loading, gate rules, simulation, metrics, v2 checks, exp
 experiment.py      replays every gate on every pair and writes results/metrics.json and results/metrics_v2.json
 demo.py            one-line summary, or renders the results block in this README
 tests/             unit tests (unittest), with the v1 acceptance tests unchanged in tests/acceptance/
-SPEC.md            the v1 specification
-SPEC-v2.md         what v2 adds and why
+SPEC-v2.md         what v2 adds and why (the v1 specification is not included)
 data/              the pinned extract, its license copy and manifest
-docs/              DESIGN.md and INTERVIEW.md
+docs/              DESIGN.md and REVIEW.md, the final independent review
 ```
+
+## Data and licenses
+
+- **Our code:** MIT, see `LICENSE`.
+- **tau2-bench results** (Sierra Research), MIT: `data/runs.csv` is a derived numeric extract of the paper's recorded
+  runs (reward and cost per run, no conversation text). The upstream license is kept as `data/tau2-bench-LICENSE` and
+  the upstream folder's README as `data/tau2-results-README.md`. The original result files are not stored here.
+  `tools/fetch_data.py` rebuilds the extract from the pinned upstream commit and checks every file against the
+  sha256 sums in `data/MANIFEST.json`.
+- **NumPy** (BSD-3-Clause) and **ruff** (MIT) are installed by the user and not shipped.
+
+## Built with
+
+Built with Arcturus (Claude Code builders, Codex review), then reviewed and verified by hand.
