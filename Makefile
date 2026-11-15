@@ -1,16 +1,18 @@
 .PHONY: test lint data-check experiment readme
 
+PYTHON ?= python3
+
 test:
-	python3 -m unittest discover -s tests
+	$(PYTHON) -m unittest discover -s tests
 
 lint:
 	ruff check . && ruff format --check .
 
 data-check:
-	python3 tools/fetch_data.py --verify
+	$(PYTHON) tools/fetch_data.py --verify
 
 experiment:
-	python3 experiment.py --out results/metrics.json
+	$(PYTHON) experiment.py --out results/metrics.json
 
 readme:
-	python3 demo.py --readme README.md --out README.md
+	$(PYTHON) demo.py --readme README.md --out README.md

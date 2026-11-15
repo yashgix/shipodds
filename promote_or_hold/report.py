@@ -74,10 +74,7 @@ def _real_inconclusive(metrics, position):
     total = worse + better
     if total == 0:
         return 0.0
-    weighted = (
-        metrics["worse_inconclusive"][position] * worse
-        + metrics["better_inconclusive"][position] * better
-    )
+    weighted = metrics["worse_inconclusive"][position] * worse + metrics["better_inconclusive"][position] * better
     return weighted / total
 
 
@@ -130,8 +127,7 @@ def pair_table(metrics, pairs=None):
     for position in range(count):
         pair = pairs[position]
         rates = tuple(
-            pct(metrics["pair_promote"][rule_position * count + position])
-            for rule_position in PAIR_RULE_POSITIONS
+            pct(metrics["pair_promote"][rule_position * count + position]) for rule_position in PAIR_RULE_POSITIONS
         )
         rows.append(
             (

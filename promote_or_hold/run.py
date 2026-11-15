@@ -107,9 +107,7 @@ def main(data_dir=DATA_DIR, out="results/metrics.json", replicates=REPLICATES):
         ("better", better, real_summaries),
     ):
         for outcome in ("promote", "hold", "inconclusive"):
-            metrics[f"{group}_{outcome}"] = [
-                _group_rate(summaries, indices, rule, outcome) for rule in RULES
-            ]
+            metrics[f"{group}_{outcome}"] = [_group_rate(summaries, indices, rule, outcome) for rule in RULES]
 
     mean_runs = [_mean(real_summaries[i][rule]["runs"] for i in range(len(real))) for rule in RULES]
     mean_cost = [_mean(real_summaries[i][rule]["cost_usd"] for i in range(len(real))) for rule in RULES]

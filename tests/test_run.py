@@ -127,9 +127,7 @@ class MainTests(unittest.TestCase):
             self.assertEqual(metrics["bootstrap_draws"], 1000)
             self.assertEqual(metrics["max_rounds"], 4)
             self.assertEqual(metrics["worse_pairs"] + metrics["better_pairs"], 52)
-            recorded_total = (
-                metrics["recorded_promote"] + metrics["recorded_hold"] + metrics["recorded_inconclusive"]
-            )
+            recorded_total = metrics["recorded_promote"] + metrics["recorded_hold"] + metrics["recorded_inconclusive"]
             self.assertEqual(recorded_total, 52)
             self.assertEqual(len(metrics["pair_delta"]), 52)
             self.assertEqual(len(metrics["pair_tasks"]), 52)
@@ -276,27 +274,17 @@ class ControlledMainTests(unittest.TestCase):
         self.assertEqual(metrics["pair_recorded"], [1, -1, 0])
 
         expected_pair_promote = [
-            summary(index, position)["promote"]
-            for position in range(len(RULES))
-            for index in range(3)
+            summary(index, position)["promote"] for position in range(len(RULES)) for index in range(3)
         ]
-        expected_pair_hold = [
-            summary(index, position)["hold"]
-            for position in range(len(RULES))
-            for index in range(3)
-        ]
+        expected_pair_hold = [summary(index, position)["hold"] for position in range(len(RULES)) for index in range(3)]
         expected_aa_promote = [
-            (summary(3, position)["promote"] + summary(4, position)["promote"]) / 2.0
-            for position in range(len(RULES))
+            (summary(3, position)["promote"] + summary(4, position)["promote"]) / 2.0 for position in range(len(RULES))
         ]
         expected_aa_pair_promote = [
-            summary(index, position)["promote"]
-            for position in range(len(RULES))
-            for index in (3, 4)
+            summary(index, position)["promote"] for position in range(len(RULES)) for index in (3, 4)
         ]
         expected_worse_promote = [
-            (summary(0, position)["promote"] + summary(1, position)["promote"]) / 2.0
-            for position in range(len(RULES))
+            (summary(0, position)["promote"] + summary(1, position)["promote"]) / 2.0 for position in range(len(RULES))
         ]
         expected_better_promote = [summary(2, position)["promote"] for position in range(len(RULES))]
         expected_mean_runs = [

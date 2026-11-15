@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - run: pip install numpy==2.5.4 ruff==0.17.4
+      - run: make lint
+      - run: make data-check
+      - run: make test
+      - name: Experiment reproduces the committed results
+        run: |
+          make experiment
+          git diff --exit-code results/
