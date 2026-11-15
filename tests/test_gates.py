@@ -131,6 +131,14 @@ class SequentialGateTests(unittest.TestCase):
         np.testing.assert_array_equal(rounds_used, np.array([2, 2, 4]))
 
 
+class UnsignedCountTests(unittest.TestCase):
+    def test_bootstrap_does_not_wrap_unsigned_counts(self):
+        weights = np.ones((1000, 1), dtype=np.int64)
+        sa = np.ones((1, 1), dtype=np.uint8)
+        sb = np.zeros((1, 1), dtype=np.uint8)
+        np.testing.assert_array_equal(bootstrap_gate(sa, sb, weights), [-1])
+
+
 class ReferenceRuleTests(unittest.TestCase):
     def test_reference_rules_are_separate_from_v1_rules(self):
         self.assertEqual(BASELINE_RULES, ("always_hold", "naive_peek"))

@@ -146,8 +146,9 @@ class V2TextTests(unittest.TestCase):
 
     def test_headline_reports_the_held_out_folds_first(self):
         text = headline(self.v2)
-        self.assertTrue(text.startswith("**Held out by domain.**"))
-        self.assertIn("picks obf_futility_1.0 in each of the 3 folds", text)
+        self.assertTrue(text.startswith("**Held out by domain (exploratory).**"))
+        self.assertIn("post-selection check, not an independent validation", text)
+        self.assertIn(f"picks {list(FUTILITY)[-1]} in each of the 3 folds", text)
         self.assertIn("promotes 30.0% to 80.0% of better candidates against 34.0% to 84.0%", text)
         self.assertIn("at most 4.0 points fewer", text)
 
@@ -160,7 +161,7 @@ class V2TextTests(unittest.TestCase):
         text = caveat(self.metrics, self.v2)
         self.assertIn("3 pairs are only 26 distinct comparisons", text)
         self.assertIn("airline 6 and 4", text)
-        self.assertIn("largest futility threshold tried", text)
+        self.assertIn("largest futility threshold tried (obf_futility_2.0). Larger thresholds are untested.", text)
         self.v2["folds"][0]["pick"] = "cmh_4"
         self.assertNotIn("largest futility threshold tried", caveat(self.metrics, self.v2))
 

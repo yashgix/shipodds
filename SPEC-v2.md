@@ -23,7 +23,11 @@ pass unchanged. `results/metrics.json` stays byte-identical to v1.
 - `sequential_gate(ya, yb, bounds, futility=-inf)`: unchanged by default. With a threshold, an undecided replicate
   whose z is below it at a look in `FUTILITY_LOOKS = (2, 3)` stops and holds. Look 1 is skipped because one trial per
   task carries too little information. The stop only holds, so it cannot raise the false-promotion rate (a
-  non-binding futility boundary). The grid spans "not ahead at all" (0) to "not ahead by one standard error" (1).
+  non-binding futility boundary). The grid spans "not ahead at all" (0) to "not ahead by two standard errors" (2).
+  The first grid stopped at 1, which was picked everywhere. 1.5 and 2 were added after an independent review, and
+  the picks did not move.
+- `bootstrap_gate` casts counts to signed integers before subtracting, so unsigned inputs cannot wrap a loss into a
+  gain.
 - `obf_futility_<f>`: `OBRIEN_FLEMING` with futility `f`. `always_hold_gate(replicates)`: every decision `-1`, no
   runs, no cost. `naive_peek`: `sequential_gate` with `NAIVE_PEEK = (Z_95,) * ROUNDS`.
 - `v2_outcomes(ya, yb, cost)` returns the v2 rules from the same draws as `outcomes` (common random numbers).
@@ -36,11 +40,13 @@ pass unchanged. `results/metrics.json` stays byte-identical to v1.
 ## Metrics (`promote_or_hold/summary.py`, `promote_or_hold/robustness.py`, `promote_or_hold/run.py`)
 - `summary.py` holds what v1 and v2 share: `ERROR_CAP`, `POWER_SLACK`, `recommend(metrics, error_cap, power_slack)`
   (v1 behaviour at the defaults), `rule_metrics`, `distinct_comparisons`. `run.py` imports `recommend` from it.
+- `main` refuses an `out` named `metrics_v2.json`, before simulating, so the v2 file cannot overwrite the v1 one.
 - `main` simulates every pair in both worlds and writes `metrics.json` (v1) and `metrics_v2.json` beside it, with:
   - `rules` (= `ALL_RULES`), `selectable`, `distinct_comparisons`, and per rule the v1 per-rule keys plus
     `aa_cost_share` (mean cost on identical copies over their full-evaluation cost), all pairs, recorded world.
   - `pick`: the v1 selection procedure over `SELECTABLE` on all pairs.
-  - `folds`: one per domain in `DOMAINS` (telecom-workflow counts as telecom). The pick is made on the other two
+  - `folds`: one per domain in `DOMAINS` (telecom-workflow counts as telecom). They are exploratory post-selection
+    checks, since the selection procedure and the futility grid were designed after looking at all domains. The pick is made on the other two
     domains' real and identical-copy pairs. Every rule is scored on the held-out domain's pairs. Each fold also
     records its pair, distinct-comparison and identical-copy counts.
   - `smoothed`: the same per-rule keys and `pick` in the smoothed world.
@@ -63,4 +69,4 @@ pass unchanged. `results/metrics.json` stays byte-identical to v1.
   committed `results/`, with read-only permissions.
 
 ## Not in this change
-Intervals over comparisons, a wider futility grid, caching the incumbent's runs and non-inferiority margins.
+Intervals over comparisons, validation on fresh runs, caching the incumbent's runs and non-inferiority margins.

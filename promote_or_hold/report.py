@@ -204,8 +204,10 @@ def headline(v2):
 
     loss = max(_at(f, v2, "cmh_4", "better_promote") - _at(f, v2, f["pick"], "better_promote") for f in folds)
     return (
-        f"**Held out by domain.** Picking the rule on two domains and scoring it on the third, the v1 selection "
-        f"procedure picks {' or '.join(picks)} in each of the {len(folds)} folds. On the held-out domain the pick "
+        "**Held out by domain (exploratory).** The selection procedure and the futility thresholds were designed "
+        "after looking at all domains, so this is a post-selection check, not an independent validation. Picking "
+        "the rule on two domains and scoring it on the third, the v1 selection procedure picks "
+        f"{' or '.join(picks)} in each of the {len(folds)} folds. On the held-out domain the pick "
         f"promotes an identical copy {held(None, 'aa_promote')} of the time (cmh_4: {held('cmh_4', 'aa_promote')}). "
         f"It promotes {held(None, 'better_promote')} of better candidates against {held('cmh_4', 'better_promote')} "
         f"for the fixed four-trial cmh_4, at most {100 * loss:.1f} points fewer. It costs {held(None, 'cost_share')} "
@@ -248,10 +250,7 @@ def caveat(metrics, v2):
     )
     largest = list(FUTILITY)[-1]
     if all(fold["pick"] == largest for fold in folds):
-        text += (
-            f" Every fold picked the largest futility threshold tried ({largest}), so the power slack, not the data, "
-            "sets how aggressive the stop is."
-        )
+        text += f" Every fold picked the largest futility threshold tried ({largest}). Larger thresholds are untested."
     return text
 
 

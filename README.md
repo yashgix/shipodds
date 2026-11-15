@@ -20,8 +20,9 @@ one, how often it holds or cannot decide on a better one, and what a decision co
   does it, at a quarter of the cost of a full evaluation.
 - The sequential design is what saves money. With a futility stop, it keeps the test's false-promotion rate and
   nearly all the power of a full four-trial test at a clearly lower cost, also when the change does nothing.
-- This holds when the rule is picked on two domains and scored on the third, in each of the three folds. The folds
-  are small, so this is supporting evidence, not proof.
+- It also holds in an exploratory check that picks the rule on two domains and scores it on the third, in each of
+  the three folds. The selection procedure and the futility thresholds were designed after looking at all domains,
+  and the folds are small, so this is a post-selection consistency check, not an independent validation.
 - Every safe rule pays for its safety by promoting fewer truly better candidates, mostly the ones with small gains.
 
 The numbers are generated at the top of [Results](#results), next to the caveats that bound them.
@@ -93,11 +94,11 @@ renders what they contain.
 ## Results
 
 <!-- results:start -->
-**Held out by domain.** Picking the rule on two domains and scoring it on the third, the v1 selection procedure picks obf_futility_1.0 in each of the 3 folds. On the held-out domain the pick promotes an identical copy 1.8% to 2.1% of the time (cmh_4: 2.3% to 2.6%). It promotes 33.1% to 81.9% of better candidates against 37.9% to 83.6% for the fixed four-trial cmh_4, at most 4.9 points fewer. It costs 54.9% to 60.8% of a full evaluation on real pairs and 55.9% to 56.6% on identical copies. The one-shot cmh_1, at a quarter of the cost, promotes only 5.2% to 58.1% of better candidates.
+**Held out by domain (exploratory).** The selection procedure and the futility thresholds were designed after looking at all domains, so this is a post-selection check, not an independent validation. Picking the rule on two domains and scoring it on the third, the v1 selection procedure picks obf_futility_1.0 in each of the 3 folds. On the held-out domain the pick promotes an identical copy 1.8% to 2.1% of the time (cmh_4: 2.3% to 2.6%). It promotes 33.1% to 81.9% of better candidates against 37.9% to 83.6% for the fixed four-trial cmh_4, at most 4.9 points fewer. It costs 54.9% to 60.8% of a full evaluation on real pairs and 55.9% to 56.6% on identical copies. The one-shot cmh_1, at a quarter of the cost, promotes only 5.2% to 58.1% of better candidates.
 
 **Two separate effects** (all pairs, in sample). A proper test instead of the mean gate is what lowers false promotions. With one trial per task and the same cost, mean_1 promotes an identical copy 43.9% of the time and cmh_1 2.4%. A sequential test instead of a fixed one is what lowers cost. sequential_obf promotes 69.2% of better candidates against 70.2% for cmh_4, at 71.5% of the cost, but 99.4% on identical copies, where it rarely stops early. Futility stops target that case. Checking the fixed test after every round (naive_peek) promotes an identical copy 6.1% of the time. Its power (72.3%) and cost (53.7%) come from that looser error rate.
 
-**How small this is.** The 52 pairs are only 26 distinct comparisons, each counted in both directions, and some configs appear in several comparisons. Each held-out domain has few distinct comparisons and identical-copy pairs (airline 6 and 4, retail 6 and 4, telecom 14 and 18). There are only 3 folds, and no interval is given. The v1 recommended rule was picked on all the data, with caps set after a prototype run on the same data. Every fold picked the largest futility threshold tried (obf_futility_1.0), so the power slack, not the data, sets how aggressive the stop is.
+**How small this is.** The 52 pairs are only 26 distinct comparisons, each counted in both directions, and some configs appear in several comparisons. Each held-out domain has few distinct comparisons and identical-copy pairs (airline 6 and 4, retail 6 and 4, telecom 14 and 18). There are only 3 folds, and no interval is given. The v1 recommended rule was picked on all the data, with caps set after a prototype run on the same data.
 
 **All pairs, every rule that matters for the headline.**
 
@@ -114,6 +115,8 @@ renders what they contain.
 | obf_futility_0.0 | 2.4% | 0.0% | 69.2% | 6.3% | 24.5% | 60.3% | 74.1% |
 | obf_futility_0.5 | 2.3% | 0.0% | 68.9% | 14.2% | 16.9% | 58.4% | 63.2% |
 | obf_futility_1.0 | 2.0% | 0.0% | 67.1% | 24.0% | 8.9% | 56.4% | 56.2% |
+| obf_futility_1.5 | 1.4% | 0.0% | 61.7% | 35.6% | 2.6% | 54.0% | 52.2% |
+| obf_futility_2.0 | 0.8% | 0.0% | 52.6% | 47.1% | 0.3% | 51.7% | 50.6% |
 
 **Held out by domain.** Picked on the other two domains, scored on this one.
 
@@ -158,9 +161,9 @@ The smoothed world picks obf_futility_1.0.
 
 | Error cap | slack 0 pts | slack 2 pts | slack 5 pts | slack 10 pts | slack 20 pts |
 |---|---|---|---|---|---|
-| 2.5% | cmh_4 | obf_futility_0.5 | obf_futility_1.0 | obf_futility_1.0 | cmh_2 |
-| 5.0% | cmh_4 | obf_futility_0.5 | obf_futility_1.0 | obf_futility_1.0 | cmh_2 |
-| 10.0% | cmh_4 | obf_futility_0.5 | obf_futility_1.0 | obf_futility_1.0 | cmh_2 |
+| 2.5% | cmh_4 | obf_futility_0.5 | obf_futility_1.0 | obf_futility_1.5 | cmh_2 |
+| 5.0% | cmh_4 | obf_futility_0.5 | obf_futility_1.0 | obf_futility_1.5 | cmh_2 |
+| 10.0% | cmh_4 | obf_futility_0.5 | obf_futility_1.0 | obf_futility_1.5 | cmh_2 |
 
 **v1 results.**
 
@@ -253,8 +256,10 @@ Two comparisons carry the result, and each isolates one effect.
   for a small prompt edit. The futility rules (`obf_futility_*`) also stop and hold at the second or third look when
   the candidate is not ahead by the threshold, which is where the extra saving comes from.
 
-The held-out table is the check that matters most. The selection procedure is run on two domains and its pick is
-scored on the third. That way the pick never sees the data it is scored on.
+The held-out table runs the selection procedure on two domains and scores its pick on the third. The held-out
+domain's pairs are left out of the pick itself. But the procedure, its caps and the futility thresholds were all
+chosen after looking at every domain, so the table shows the pick is consistent across domains, not that it was
+validated on unseen data. That would need fresh runs and a procedure frozen beforehand.
 
 `naive_peek` shows why the sequential boundaries are needed. It is the fixed test checked after every round with no
 correction, which is what a team does when it "just keeps an eye on the numbers". It stops early too, but its
@@ -302,10 +307,13 @@ None of the statistics here is new. The measurement on real agent trials is the 
 - **Few distinct comparisons.** Every pair appears in both directions, so the "worse" and "better" groups mirror each
   other, and some configs appear in several comparisons. The group rates are averages over a few dozen comparisons,
   not independent measurements, and no interval is given.
-- **Three small folds.** Each held-out domain has only a handful of comparisons. The folds show the pick is not an
-  artefact of scoring on its own data, but they cannot pin its numbers down.
-- **The futility threshold sits at the edge of what was tried.** The selection takes the cheapest rule within the
-  power slack, so it spends the whole slack. The slack, not the data, sets how aggressive the stop is.
+- **Three small, exploratory folds.** Each held-out domain has only a handful of comparisons, and the selection
+  design was fixed after looking at all of them. The folds are a consistency check, not an independent validation,
+  and they cannot pin the numbers down.
+- **The futility grid was widened after review.** The first grid stopped at the threshold that was picked, so larger
+  thresholds were untested. The two larger thresholds were added after an independent review. The picks did not
+  move, because the larger thresholds lose more power than the slack allows. The caveat paragraph flags it if the
+  pick ever sits at the end of the grid again.
 - **The task bootstrap answers a broader question** (how the gate behaves on new tasks drawn from a task
   distribution) than the truth used to score it (this suite). That is why it is more often inconclusive. It is a
   property of the question, not a defect of the method.

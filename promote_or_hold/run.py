@@ -47,6 +47,9 @@ def _write(path, metrics):
 
 def main(data_dir=DATA_DIR, out="results/metrics.json", replicates=REPLICATES):
     """Simulate every real and identical-copy pair and write the v1 metrics and, beside them, the v2 metrics."""
+    path = Path(out)
+    if path.name == V2_NAME:
+        raise ValueError(f"--out must not be named {V2_NAME}: the v2 metrics are written there")
     configs = load(data_dir)
     real = real_pairs(configs)
     copies = aa_pairs(configs)
@@ -101,6 +104,5 @@ def main(data_dir=DATA_DIR, out="results/metrics.json", replicates=REPLICATES):
         copies,
     )
 
-    path = Path(out)
     _write(path, metrics)
     _write(path.with_name(V2_NAME), v2)

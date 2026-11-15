@@ -286,3 +286,19 @@ class SmoothedTests(unittest.TestCase):
         smoothed = simulate(configs, pair, 0, replicates=50, smoothed=True)
         self.assertEqual(smoothed, simulate(configs, pair, 0, replicates=50, smoothed=True))
         self.assertNotEqual(recorded["mean_1"], smoothed["mean_1"])
+
+
+class UnsignedRewardTests(unittest.TestCase):
+    def test_unsigned_rewards_simulate_like_signed(self):
+        rewards_a = np.array([[1, 1, 1, 1], [1, 0, 1, 0], [1, 1, 0, 1]])
+        rewards_b = np.zeros((3, TRIALS))
+
+        def configs(dtype):
+            a = Config("a", "d", "default", ("t1", "t2", "t3"), rewards_a.astype(dtype), np.ones((3, TRIALS)))
+            b = Config("b", "d", "default", ("t1", "t2", "t3"), rewards_b.astype(dtype), np.ones((3, TRIALS)))
+            return {a.key: a, b.key: b}, Pair("model", a.key, b.key)
+
+        signed = simulate(*configs(np.int64), 0, replicates=200, v2=True)
+        unsigned = simulate(*configs(np.uint8), 0, replicates=200, v2=True)
+        self.assertEqual(unsigned, signed)
+        self.assertEqual(unsigned["bootstrap_4"]["promote"], 0.0)

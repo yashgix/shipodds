@@ -115,8 +115,9 @@ the recordings every time. Only the policy is prior.
   decisions on better candidates. The threshold is chosen by the selection procedure, never fixed by hand.
 - **Reference rules.** `always_hold` never promotes and costs nothing. `naive_peek` checks the fixed 1.96 test after
   every round. Both are reported and never selected.
-- **Held out by domain.** The selection procedure picks among the v1 rules and the futility rules on two domains
-  and the pick is scored on the third. Telecom and telecom-workflow count as one domain, so the policy comparisons
+- **Held out by domain (exploratory).** The selection procedure picks among the v1 rules and the futility rules on
+  two domains and the pick is scored on the third. The procedure and the futility grid were designed after looking
+  at all domains, so this is a consistency check, not an independent validation. Telecom and telecom-workflow count as one domain, so the policy comparisons
   stay in the telecom fold.
 - **Smoothed-noise world.** Each task's pass rate becomes `(successes + 0.5) / (TRIALS + 1)` (the Jeffreys posterior
   mean) and trials are drawn fresh at that rate, at the task's mean recorded cost. Tasks that passed or failed all

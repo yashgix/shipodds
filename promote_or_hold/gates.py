@@ -22,7 +22,13 @@ RULES = (
 )
 # v2 rules (SPEC-v2.md). Futility rules may be selected. Reference rules are reported but never selected.
 FUTILITY_LOOKS = (2, 3)
-FUTILITY = {"obf_futility_0.0": 0.0, "obf_futility_0.5": 0.5, "obf_futility_1.0": 1.0}
+FUTILITY = {
+    "obf_futility_0.0": 0.0,
+    "obf_futility_0.5": 0.5,
+    "obf_futility_1.0": 1.0,
+    "obf_futility_1.5": 1.5,
+    "obf_futility_2.0": 2.0,
+}
 BASELINE_RULES = ("always_hold", "naive_peek")
 NAIVE_PEEK = (Z_95,) * ROUNDS
 V2_RULES = (*FUTILITY, *BASELINE_RULES)
@@ -50,7 +56,8 @@ def bootstrap_weights(n, rng, draws=BOOTSTRAP_DRAWS):
 
 def bootstrap_gate(sa, sb, weights):
     """Paired task bootstrap: promote, hold, or wait for a clearer difference."""
-    totals = (np.asarray(sb) - np.asarray(sa)) @ weights.T
+    # Signed before subtracting: unsigned counts would wrap a loss into a large gain.
+    totals = (np.asarray(sb, dtype=np.int64) - np.asarray(sa, dtype=np.int64)) @ weights.T
     totals = np.sort(totals, axis=1)
     tail = weights.shape[0] // 40
     lo = totals[:, tail]

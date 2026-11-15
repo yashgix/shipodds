@@ -324,3 +324,12 @@ class DistinctComparisonTests(unittest.TestCase):
         a, b, c = ("a", "d", "default"), ("b", "d", "default"), ("c", "d", "default")
         pairs = [Pair("model", a, b), Pair("model", b, a), Pair("model", a, c)]
         self.assertEqual(distinct_comparisons(pairs), 2)
+
+
+class OutputPathTests(unittest.TestCase):
+    def test_out_must_not_be_the_v2_file(self):
+        with tempfile.TemporaryDirectory() as folder, mock.patch("promote_or_hold.run.load") as load_mock:
+            with self.assertRaises(ValueError):
+                main(out=Path(folder) / V2_NAME, replicates=1)
+            load_mock.assert_not_called()
+            self.assertEqual(list(Path(folder).iterdir()), [])
