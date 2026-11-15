@@ -80,6 +80,76 @@ prints or renders what that file contains.
 ## Results
 
 <!-- results:start -->
+Across 52 candidate/incumbent pairs (26 configs, 10,832 recorded runs; 26 identical-copy pairs), each gate was replayed 2,000 times. A full 4-trial evaluation of both arms costs $131.04 on average. The full recorded evaluation promotes 19 pairs, holds 19, and cannot decide 14.
+
+| Rule | Identical copy promoted | Worse promoted | Better promoted | Inconclusive | Runs per decision | Cost per decision | Share of full evaluation |
+|---|---|---|---|---|---|---|---|
+| mean_1 | 43.9% | 7.5% | 88.8% | 0.0% | 198 | $32.76 | 25.0% |
+| mean_2 | 45.8% | 5.1% | 93.1% | 0.0% | 397 | $65.52 | 50.0% |
+| mean_4 | 47.1% | 3.3% | 95.9% | 0.0% | 794 | $131.03 | 100.0% |
+| bootstrap_1 | 2.3% | 0.0% | 38.1% | 62.1% | 198 | $32.76 | 25.0% |
+| bootstrap_2 | 2.4% | 0.0% | 44.2% | 55.8% | 397 | $65.52 | 50.0% |
+| bootstrap_4 | 2.6% | 0.0% | 48.1% | 51.8% | 794 | $131.03 | 100.0% |
+| cmh_1 | 2.4% | 0.0% | 38.6% | 61.5% | 198 | $32.76 | 25.0% |
+| cmh_2 | 2.4% | 0.0% | 55.1% | 44.9% | 397 | $65.52 | 50.0% |
+| cmh_4 | 2.4% | 0.0% | 70.2% | 29.9% | 794 | $131.03 | 100.0% |
+| sequential_pocock | 2.2% | 0.0% | 64.3% | 35.8% | 498 | $79.93 | 61.0% |
+| **sequential_obf** (recommended) | 2.4% | 0.0% | 69.2% | 30.8% | 577 | $93.65 | 71.5% |
+
+| Incumbent | Candidate | Tasks | True difference (pts) | Full recorded evaluation | mean_1 | cmh_4 | sequential_obf |
+|---|---|---|---|---|---|---|---|
+| gpt-4.1 telecom | gpt-4.1 telecom-workflow | 114 | +17.5 | promote | 100.0% | 100.0% | 100.0% |
+| o4-mini telecom | o4-mini telecom-workflow | 114 | +17.3 | promote | 100.0% | 100.0% | 100.0% |
+| gpt-4.1 telecom (no-user) | gpt-4.1 telecom-workflow (no-user) | 114 | +16.9 | promote | 100.0% | 100.0% | 100.0% |
+| gpt-4.1 telecom-workflow (op) | gpt-4.1 telecom (op) | 114 | +16.2 | promote | 100.0% | 100.0% | 100.0% |
+| gpt-4.1 telecom | claude-3.7-sonnet telecom | 114 | +15.1 | promote | 100.0% | 100.0% | 100.0% |
+| gpt-4.1-mini retail | claude-3.7-sonnet retail | 114 | +12.7 | promote | 100.0% | 100.0% | 100.0% |
+| gpt-4.1 telecom | gpt-4.1-mini telecom | 114 | +9.6 | promote | 98.9% | 99.8% | 99.8% |
+| claude-3.7-sonnet airline | o4-mini airline | 50 | +9.0 | promote | 93.7% | 76.2% | 74.3% |
+| o4-mini telecom-workflow (no-user-op) | o4-mini telecom (no-user-op) | 114 | +8.6 | promote | 100.0% | 100.0% | 100.0% |
+| gpt-4.1-mini airline | o4-mini airline | 50 | +8.5 | promote | 90.4% | 68.2% | 65.1% |
+| o4-mini telecom-workflow (op) | o4-mini telecom (op) | 114 | +8.3 | promote | 100.0% | 100.0% | 100.0% |
+| gpt-4.1-mini retail | gpt-4.1 retail | 114 | +8.1 | promote | 98.0% | 97.7% | 97.3% |
+| gpt-4.1 telecom | o4-mini telecom | 114 | +7.9 | promote | 98.8% | 98.6% | 98.5% |
+| o4-mini retail | claude-3.7-sonnet retail | 114 | +7.2 | promote | 96.6% | 92.1% | 91.7% |
+| o4-mini telecom | claude-3.7-sonnet telecom | 114 | +7.2 | promote | 97.0% | 95.2% | 94.6% |
+| claude-3.7-sonnet airline | gpt-4.1 airline | 50 | +6.0 | inconclusive | 84.0% | 42.1% | 39.1% |
+| gpt-4.1-mini airline | gpt-4.1 airline | 50 | +5.5 | inconclusive | 79.0% | 29.4% | 27.2% |
+| gpt-4.1-mini retail | o4-mini retail | 114 | +5.5 | promote | 87.1% | 63.1% | 61.2% |
+| gpt-4.1-mini telecom | claude-3.7-sonnet telecom | 114 | +5.5 | promote | 87.8% | 67.5% | 65.2% |
+| o4-mini telecom (no-user) | o4-mini telecom-workflow (no-user) | 114 | +4.8 | promote | 92.6% | 83.6% | 82.1% |
+| gpt-4.1 retail | claude-3.7-sonnet retail | 114 | +4.6 | promote | 88.7% | 57.7% | 55.1% |
+| gpt-4.1 airline | o4-mini airline | 50 | +3.0 | inconclusive | 62.7% | 10.3% | 9.6% |
+| o4-mini retail | gpt-4.1 retail | 114 | +2.6 | inconclusive | 73.0% | 15.1% | 13.8% |
+| gpt-4.1 telecom (no-user-op) | gpt-4.1 telecom-workflow (no-user-op) | 114 | +2.6 | inconclusive | 72.2% | 17.6% | 16.4% |
+| o4-mini telecom | gpt-4.1-mini telecom | 114 | +1.8 | inconclusive | 62.3% | 8.8% | 8.3% |
+| claude-3.7-sonnet airline | gpt-4.1-mini airline | 50 | +0.5 | inconclusive | 46.7% | 1.3% | 1.1% |
+| gpt-4.1-mini airline | claude-3.7-sonnet airline | 50 | -0.5 | inconclusive | 38.4% | 0.2% | 0.2% |
+| gpt-4.1-mini telecom | o4-mini telecom | 114 | -1.8 | inconclusive | 28.3% | 0.1% | 0.1% |
+| gpt-4.1 retail | o4-mini retail | 114 | -2.6 | inconclusive | 20.1% | 0.0% | 0.0% |
+| gpt-4.1 telecom-workflow (no-user-op) | gpt-4.1 telecom (no-user-op) | 114 | -2.6 | inconclusive | 18.5% | 0.0% | 0.0% |
+| o4-mini airline | gpt-4.1 airline | 50 | -3.0 | inconclusive | 24.5% | 0.0% | 0.0% |
+| claude-3.7-sonnet retail | gpt-4.1 retail | 114 | -4.6 | hold | 8.4% | 0.0% | 0.0% |
+| o4-mini telecom-workflow (no-user) | o4-mini telecom (no-user) | 114 | -4.8 | hold | 4.6% | 0.0% | 0.0% |
+| o4-mini retail | gpt-4.1-mini retail | 114 | -5.5 | hold | 7.6% | 0.0% | 0.0% |
+| claude-3.7-sonnet telecom | gpt-4.1-mini telecom | 114 | -5.5 | hold | 7.0% | 0.0% | 0.0% |
+| gpt-4.1 airline | gpt-4.1-mini airline | 50 | -5.5 | inconclusive | 13.2% | 0.0% | 0.0% |
+| gpt-4.1 airline | claude-3.7-sonnet airline | 50 | -6.0 | inconclusive | 9.3% | 0.0% | 0.0% |
+| claude-3.7-sonnet retail | o4-mini retail | 114 | -7.2 | hold | 2.1% | 0.0% | 0.0% |
+| claude-3.7-sonnet telecom | o4-mini telecom | 114 | -7.2 | hold | 1.9% | 0.0% | 0.0% |
+| o4-mini telecom | gpt-4.1 telecom | 114 | -7.9 | hold | 0.5% | 0.0% | 0.0% |
+| gpt-4.1 retail | gpt-4.1-mini retail | 114 | -8.1 | hold | 1.5% | 0.0% | 0.0% |
+| o4-mini telecom (op) | o4-mini telecom-workflow (op) | 114 | -8.3 | hold | 0.0% | 0.0% | 0.0% |
+| o4-mini airline | gpt-4.1-mini airline | 50 | -8.5 | hold | 4.6% | 0.0% | 0.0% |
+| o4-mini telecom (no-user-op) | o4-mini telecom-workflow (no-user-op) | 114 | -8.6 | hold | 0.0% | 0.0% | 0.0% |
+| o4-mini airline | claude-3.7-sonnet airline | 50 | -9.0 | hold | 3.1% | 0.0% | 0.0% |
+| gpt-4.1-mini telecom | gpt-4.1 telecom | 114 | -9.6 | hold | 0.5% | 0.0% | 0.0% |
+| claude-3.7-sonnet retail | gpt-4.1-mini retail | 114 | -12.7 | hold | 0.1% | 0.0% | 0.0% |
+| claude-3.7-sonnet telecom | gpt-4.1 telecom | 114 | -15.1 | hold | 0.0% | 0.0% | 0.0% |
+| gpt-4.1 telecom (op) | gpt-4.1 telecom-workflow (op) | 114 | -16.2 | hold | 0.0% | 0.0% | 0.0% |
+| gpt-4.1 telecom-workflow (no-user) | gpt-4.1 telecom (no-user) | 114 | -16.9 | hold | 0.0% | 0.0% | 0.0% |
+| o4-mini telecom-workflow | o4-mini telecom | 114 | -17.3 | hold | 0.0% | 0.0% | 0.0% |
+| gpt-4.1 telecom-workflow | gpt-4.1 telecom | 114 | -17.5 | hold | 0.0% | 0.0% | 0.0% |
 <!-- results:end -->
 
 ## What this shows
