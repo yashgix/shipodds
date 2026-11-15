@@ -4,6 +4,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import numpy as np
 
@@ -188,3 +189,134 @@ class MainTests(unittest.TestCase):
                 self.assertGreater(value, 0.0)
             self.assertGreaterEqual(metrics["recommended_rule"], -1)
             self.assertLess(metrics["recommended_rule"], len(RULES))
+
+
+class ControlledMainTests(unittest.TestCase):
+    def test_main_aggregates_pair_results_and_rule_major_outputs(self):
+        first = Config(
+            "m1",
+            "d",
+            "default",
+            ("t1", "t2"),
+            np.zeros((2, TRIALS), dtype=np.int64),
+            np.ones((2, TRIALS)),
+        )
+        second = Config(
+            "m2",
+            "d",
+            "default",
+            ("t1", "t2", "t3"),
+            np.zeros((3, TRIALS), dtype=np.int64),
+            np.ones((3, TRIALS)),
+        )
+        configs = {first.key: first, second.key: second}
+        real = [
+            Pair("model", first.key, second.key),
+            Pair("model", second.key, first.key),
+            Pair("policy", first.key, first.key),
+        ]
+        copies = [Pair("aa", first.key, first.key), Pair("aa", second.key, second.key)]
+
+        def summary(index, position):
+            promote = 0.001 * (position + 1) + 0.00001 * index
+            hold = 0.2
+            return {
+                "promote": promote,
+                "hold": hold,
+                "inconclusive": 1.0 - promote - hold,
+                "runs": float(10 * (position + 1) + index),
+                "cost_usd": float((position + 1) + 0.1 * index),
+            }
+
+        def fake_simulate(configs, pair, index, replicates):
+            return {rule: summary(index, position) for position, rule in enumerate(RULES)}
+
+        def fake_cost(configs, pair):
+            del configs, pair
+            return 1.0
+
+        def fake_delta(configs, pair):
+            del configs, pair
+            return 1.0
+
+        def fake_recorded(configs, pair):
+            del configs, pair
+            return 1
+
+        with tempfile.TemporaryDirectory() as folder:
+            out = Path(folder) / "nested" / "metrics.json"
+            with (
+                mock.patch("promote_or_hold.run.load", return_value=configs),
+                mock.patch("promote_or_hold.run.real_pairs", return_value=real),
+                mock.patch("promote_or_hold.run.aa_pairs", return_value=copies),
+                mock.patch("promote_or_hold.run.simulate", side_effect=fake_simulate) as simulate_mock,
+                mock.patch("promote_or_hold.run.delta", side_effect=[0.0, -0.1, 0.2]),
+                mock.patch("promote_or_hold.run.full_cost", side_effect=[10.0, 20.0, 30.0]),
+                mock.patch("promote_or_hold.run.recorded_decision", side_effect=[1, -1, 0]),
+                mock.patch("promote_or_hold.run.delta", side_effect=[0.0, -0.1, 0.2]),
+                mock.patch("promote_or_hold.run.full_cost", side_effect=[10.0, 20.0, 30.0]),
+                mock.patch("promote_or_hold.run.recorded_decision", side_effect=[1, -1, 0]),
+            ):
+                main("ignored", out, replicates=3)
+            metrics = json.loads(out.read_text())
+
+        self.assertEqual([call.args[2] for call in simulate_mock.call_args_list], [0, 1, 2, 3, 4])
+        self.assertEqual(metrics["configs"], 2)
+        self.assertEqual(metrics["runs_recorded"], 20)
+        self.assertEqual(metrics["pairs"], 3)
+        self.assertEqual(metrics["aa_pairs"], 2)
+        self.assertEqual(metrics["worse_pairs"], 2)
+        self.assertEqual(metrics["better_pairs"], 1)
+        self.assertEqual(metrics["recorded_promote"], 1)
+        self.assertEqual(metrics["recorded_hold"], 1)
+        self.assertEqual(metrics["recorded_inconclusive"], 1)
+        self.assertEqual(metrics["pair_delta"], [0.0, -0.1, 0.2])
+        self.assertEqual(metrics["pair_tasks"], [2, 3, 2])
+        self.assertEqual(metrics["pair_full_cost_usd"], [10.0, 20.0, 30.0])
+        self.assertEqual(metrics["pair_recorded"], [1, -1, 0])
+
+        expected_pair_promote = [
+            summary(index, position)["promote"]
+            for position in range(len(RULES))
+            for index in range(3)
+        ]
+        expected_pair_hold = [
+            summary(index, position)["hold"]
+            for position in range(len(RULES))
+            for index in range(3)
+        ]
+        expected_aa_promote = [
+            (summary(3, position)["promote"] + summary(4, position)["promote"]) / 2.0
+            for position in range(len(RULES))
+        ]
+        expected_aa_pair_promote = [
+            summary(index, position)["promote"]
+            for position in range(len(RULES))
+            for index in (3, 4)
+        ]
+        expected_worse_promote = [
+            (summary(0, position)["promote"] + summary(1, position)["promote"]) / 2.0
+            for position in range(len(RULES))
+        ]
+        expected_better_promote = [summary(2, position)["promote"] for position in range(len(RULES))]
+        expected_mean_runs = [
+            (summary(0, position)["runs"] + summary(1, position)["runs"] + summary(2, position)["runs"]) / 3.0
+            for position in range(len(RULES))
+        ]
+        expected_mean_cost = [
+            (summary(0, position)["cost_usd"] + summary(1, position)["cost_usd"] + summary(2, position)["cost_usd"])
+            / 3.0
+            for position in range(len(RULES))
+        ]
+        expected_cost_share = [cost / 20.0 for cost in expected_mean_cost]
+
+        np.testing.assert_allclose(metrics["pair_promote"], expected_pair_promote, atol=1e-8)
+        np.testing.assert_allclose(metrics["pair_hold"], expected_pair_hold, atol=1e-8)
+        np.testing.assert_allclose(metrics["aa_pair_promote"], expected_aa_pair_promote, atol=1e-8)
+        np.testing.assert_allclose(metrics["aa_promote"], expected_aa_promote, atol=1e-8)
+        np.testing.assert_allclose(metrics["worse_promote"], expected_worse_promote, atol=1e-8)
+        np.testing.assert_allclose(metrics["better_promote"], expected_better_promote, atol=1e-8)
+        np.testing.assert_allclose(metrics["mean_runs"], expected_mean_runs, atol=1e-8)
+        np.testing.assert_allclose(metrics["mean_cost_usd"], expected_mean_cost, atol=1e-8)
+        np.testing.assert_allclose(metrics["cost_share"], expected_cost_share, atol=1e-8)
+        self.assertEqual(metrics["recommended_rule"], 0)

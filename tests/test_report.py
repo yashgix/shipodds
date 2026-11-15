@@ -79,6 +79,8 @@ def make_metrics():
     metrics["aa_promote"][4] = 0.024
     metrics["worse_promote"][4] = 0.001
     metrics["better_promote"][4] = 0.56
+    metrics["worse_inconclusive"][4] = 0.4
+    metrics["better_inconclusive"][4] = 0.1
     metrics["mean_runs"] = [100.0] * rules
     metrics["mean_cost_usd"] = [1.0] * rules
     metrics["mean_cost_usd"][4] = 0.8
@@ -118,8 +120,10 @@ class TextTests(unittest.TestCase):
         self.assertIn("**bootstrap_2** (recommended)", table)
         rows = [line for line in table.splitlines() if line.startswith("|")]
         self.assertEqual(len(rows), len(RULES) + 2)
-        for fragment in ("43.9%", "2.4%", "0.1%", "56.0%", "20.0%", "70.0%"):
+        for fragment in ("43.9%", "2.4%", "0.1%", "56.0%", "30.0%", "70.0%"):
             self.assertIn(fragment, table)
+        recommended_row = next(line for line in rows if "**bootstrap_2**" in line)
+        self.assertIn("30.0%", recommended_row)
 
     def test_pair_table_sorted_by_true_difference(self):
         table = pair_table(self.metrics, make_pairs())

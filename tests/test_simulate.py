@@ -6,9 +6,9 @@ import numpy as np
 
 from promote_or_hold import DATA_DIR
 from promote_or_hold.data import TRIALS, Config, load
-from promote_or_hold.gates import OBRIEN_FLEMING, POCOCK, ROUNDS, RULES, sequential_gate
+from promote_or_hold.gates import OBRIEN_FLEMING, POCOCK, ROUNDS, RULES, bootstrap_weights, sequential_gate
 from promote_or_hold.pairs import Pair, aa_pairs
-from promote_or_hold.simulate import FIXED_TRIALS, draw, outcomes, simulate, weights_for
+from promote_or_hold.simulate import FIXED_TRIALS, SEED, draw, outcomes, simulate, weights_for
 
 
 def make_config(model="m", domain="d", mode="default", tasks=("t1", "t2"), rewards=None, costs=None):
@@ -45,6 +45,31 @@ class DrawTests(unittest.TestCase):
             expected = {self.a.costs[t, i] + self.b.costs[t, j] for i in range(TRIALS) for j in range(TRIALS)}
             for value in np.unique(cost[:, t, :]):
                 self.assertIn(value, expected)
+
+    def test_exact_seeded_draw_uses_incumbent_then_candidate(self):
+        rng = np.random.default_rng(11)
+        expected_ia = rng.integers(0, TRIALS, (6, 2, ROUNDS))
+        expected_ib = rng.integers(0, TRIALS, (6, 2, ROUNDS))
+        tasks = np.arange(2)[None, :, None]
+        expected_ya = self.a.rewards[tasks, expected_ia]
+        expected_yb = self.b.rewards[tasks, expected_ib]
+        expected_cost = self.a.costs[tasks, expected_ia] + self.b.costs[tasks, expected_ib]
+        ya, yb, cost = draw(self.a, self.b, np.random.default_rng(11), 6)
+        np.testing.assert_array_equal(ya, expected_ya)
+        np.testing.assert_array_equal(yb, expected_yb)
+        np.testing.assert_allclose(cost, expected_cost)
+
+    def test_identical_copy_arms_draw_independently(self):
+        rng = np.random.default_rng(12)
+        expected_ia = rng.integers(0, TRIALS, (8, 2, ROUNDS))
+        expected_ib = rng.integers(0, TRIALS, (8, 2, ROUNDS))
+        tasks = np.arange(2)[None, :, None]
+        expected_ya = self.a.rewards[tasks, expected_ia]
+        expected_yb = self.a.rewards[tasks, expected_ib]
+        ya, yb, _ = draw(self.a, self.a, np.random.default_rng(12), 8)
+        np.testing.assert_array_equal(ya, expected_ya)
+        np.testing.assert_array_equal(yb, expected_yb)
+        self.assertFalse(np.array_equal(expected_ia, expected_ib))
 
 
 class OutcomeTests(unittest.TestCase):
@@ -123,6 +148,30 @@ class SimulateTests(unittest.TestCase):
             self.assertGreater(metrics["runs"], 0.0)
             self.assertGreater(metrics["cost_usd"], 0.0)
         self.assertIs(weights_for(3), weights_for(3))
+
+    def test_weights_for_matches_seeded_bootstrap_weights(self):
+        expected = bootstrap_weights(3, np.random.default_rng([SEED, 0, 3]))
+        np.testing.assert_array_equal(weights_for(3), expected)
+        self.assertIs(weights_for(3), weights_for(3))
+
+    def test_simulate_uses_seeded_draw_and_index(self):
+        index = 5
+        replicates = 7
+        rng = np.random.default_rng([SEED, 1, index])
+        ya, yb, cost = draw(self.a, self.b, rng, replicates)
+        results = outcomes(ya, yb, cost, weights_for(len(self.a.tasks)))
+        result = simulate(self.configs, self.pair, index=index, replicates=replicates)
+        for rule in RULES:
+            decisions, runs, usd = results[rule]
+            expected = {
+                "promote": float(np.mean(decisions == 1)),
+                "hold": float(np.mean(decisions == -1)),
+                "inconclusive": float(np.mean(decisions == 0)),
+                "runs": float(np.mean(runs)),
+                "cost_usd": float(np.mean(usd)),
+            }
+            for key, value in expected.items():
+                self.assertAlmostEqual(result[rule][key], value, places=12)
 
     def test_mismatched_tasks_raise(self):
         other = make_config(

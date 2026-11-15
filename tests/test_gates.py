@@ -60,11 +60,27 @@ class BootstrapTests(unittest.TestCase):
         np.testing.assert_array_equal(first, second)
         np.testing.assert_array_equal(first.sum(axis=1), np.full(10, 5))
 
+    def test_weights_match_bincount_of_seeded_picks(self):
+        draws, n = 10, 5
+        picks = np.random.default_rng(123).integers(0, n, (draws, n))
+        expected = np.stack([np.bincount(row, minlength=n) for row in picks])
+        np.testing.assert_array_equal(bootstrap_weights(n, np.random.default_rng(123), draws=draws), expected)
+
     def test_gate_on_clear_and_null_differences(self):
         weights = bootstrap_weights(4, np.random.default_rng(0), draws=100)
         sa = np.zeros((1, 4), dtype=np.int64)
         sb = np.ones((1, 4), dtype=np.int64)
         np.testing.assert_array_equal(bootstrap_gate(sa, sb, weights), [1])
+        np.testing.assert_array_equal(bootstrap_gate(sb, sa, weights), [-1])
+        np.testing.assert_array_equal(bootstrap_gate(sa, sa, weights), [0])
+
+    def test_gate_uses_tail_order_statistics(self):
+        weights = np.arange(40).reshape(40, 1)
+        sa = np.zeros((1, 1), dtype=np.int64)
+        sb = np.ones((1, 1), dtype=np.int64)
+        # Totals are 0..39: the lower tail is 1, not the excluded minimum of 0.
+        np.testing.assert_array_equal(bootstrap_gate(sa, sb, weights), [1])
+        # Totals are -39..0: the upper tail is -1, not the excluded maximum of 0.
         np.testing.assert_array_equal(bootstrap_gate(sb, sa, weights), [-1])
         np.testing.assert_array_equal(bootstrap_gate(sa, sa, weights), [0])
 

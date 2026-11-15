@@ -72,6 +72,31 @@ class RealDataTests(unittest.TestCase):
         self.assertEqual(list(load(Path(DATA_DIR))), list(self.configs))
 
 
+class ExactLoadTests(unittest.TestCase):
+    def test_rewards_and_costs_land_at_task_trial_positions(self):
+        rows = [
+            ["m", "d", "default", "t2", 1, 0, "2.0", "0.5"],
+            ["m", "d", "default", "t1", 0, 1, "1.0", "0.25"],
+            ["m", "d", "default", "t2", 3, 1, "3.0", "0.75"],
+            ["m", "d", "default", "t1", 2, 0, "4.0", "0.0"],
+            ["m", "d", "default", "t1", 3, 1, "5.0", "0.5"],
+            ["m", "d", "default", "t2", 0, 1, "6.0", "0.5"],
+            ["m", "d", "default", "t1", 1, 0, "7.0", "0.25"],
+            ["m", "d", "default", "t2", 2, 0, "8.0", "0.75"],
+        ]
+        with tempfile.TemporaryDirectory() as folder:
+            write_runs(folder, rows)
+            configs = load(folder)
+        self.assertEqual(list(configs), [("m", "d", "default")])
+        config = configs[("m", "d", "default")]
+        self.assertEqual(config.tasks, ("t1", "t2"))
+        np.testing.assert_array_equal(config.rewards, np.array([[1, 0, 0, 1], [1, 0, 0, 1]], dtype=np.int64))
+        np.testing.assert_allclose(
+            config.costs,
+            np.array([[1.25, 7.25, 4.0, 5.5], [6.5, 2.5, 8.75, 3.75]]),
+        )
+
+
 class BadRunsTests(unittest.TestCase):
     def assert_invalid(self, rows):
         with tempfile.TemporaryDirectory() as folder:
