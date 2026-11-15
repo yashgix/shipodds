@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>promote-or-hold</title>
+<meta name="description" content="When should a new agent version replace the current one? Promotion gates replayed on recorded tau2-bench trials: false promotions, power and cost.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* One 760px reading column on white, charts widen to 980px. Teal means a rule that behaves, amber is the warning. */
+:root {
+  color-scheme: light;
+  --paper: #ffffff; --band: #f2f7f6; --ink: #142421; --muted: #52625f; --line: #dde7e5;
+  --accent: #0b6b5d; --accent-soft: #e3f2ef; --warn: #b45309; --warn-soft: #fdf1e4; --code: #eef4f3;
+  --sans: "IBM Plex Sans", -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --s0: 0.8125rem; --s1: 1.0625rem; --s2: 1.25rem; --s3: 1.6rem; --s4: clamp(2.2rem, 5.5vw, 3.2rem);
+  --radius: 12px;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: var(--s1); line-height: 1.65; }
+.wrap { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.col { max-width: 760px; margin-inline: auto; }
+.wide { max-width: 980px; margin-inline: auto; }
+a { color: var(--accent); text-underline-offset: 3px; }
+h1, h2, h3 { text-wrap: balance; line-height: 1.2; margin: 0; }
+h2 { font-size: var(--s3); font-weight: 600; letter-spacing: -0.015em; }
+h3 { font-size: var(--s1); font-weight: 600; }
+p, ul, ol { margin: 0; }
+ul, ol { padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.4rem; }
+code { font-family: var(--mono); font-size: 0.88em; background: var(--code); padding: 0.08em 0.35em; border-radius: 4px; overflow-wrap: anywhere; }
+.muted { color: var(--muted); }
+.small { font-size: var(--s0); }
+.eyebrow { font-family: var(--mono); font-size: var(--s0); font-weight: 500; color: var(--accent); letter-spacing: 0.06em; text-transform: uppercase; }
+.stack { display: flex; flex-direction: column; gap: 1.1rem; }
+section { padding-block: 2.75rem; }
+section + section { border-top: 1px solid var(--line); }
+.bar { position: sticky; top: 0; z-index: 5; background: rgba(255,255,255,0.94); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.bar-in { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-block: 0.6rem; }
+.brand { font-family: var(--mono); font-weight: 600; }
+.gh { font-size: var(--s0); font-weight: 600; text-decoration: none; white-space: nowrap; border: 1px solid var(--accent); border-radius: 999px; padding: 0.3rem 0.8rem; }
+header { padding-block: 3.5rem 2.25rem; background: linear-gradient(180deg, var(--band), var(--paper)); }
+h1 { font-family: var(--mono); font-size: var(--s4); font-weight: 600; letter-spacing: -0.03em; overflow-wrap: anywhere; }
+.lede { font-size: var(--s2); color: var(--muted); max-width: 60ch; line-height: 1.55; }
+.tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem; }
+.tile { border: 1px solid var(--line); border-radius: var(--radius); padding: 1rem; display: flex; flex-direction: column; gap: 0.25rem; }
+.tile .big { font-family: var(--mono); font-size: 1.7rem; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); }
+.tile .big.warn { color: var(--warn); }
+.callout { background: var(--warn-soft); border: 1px solid #f1d3b3; border-radius: var(--radius); padding: 1.1rem 1.3rem; }
+.callout b { color: var(--warn); }
+.charts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; }
+.panel { display: flex; flex-direction: column; gap: 0.5rem; min-width: 0; }
+.bars { display: flex; flex-direction: column; gap: 0.4rem; }
+.b { display: grid; grid-template-columns: 7.2rem minmax(0, 1fr) 3.4rem; gap: 0.5rem; align-items: center; }
+.b .name { font-family: var(--mono); font-size: 0.7rem; overflow-wrap: anywhere; line-height: 1.2; }
+.track { height: 16px; background: var(--code); border-radius: 4px; position: relative; overflow: hidden; display: block; }
+.fill { position: absolute; inset: 0 auto 0 0; background: var(--accent); border-radius: 4px; min-width: 2px; }
+.fill.warn { background: var(--warn); }
+.b .v { font-size: 0.72rem; font-variant-numeric: tabular-nums; text-align: right; }
+.axis { display: grid; grid-template-columns: 7.2rem minmax(0, 1fr) 3.4rem; gap: 0.5rem; font-size: 0.65rem; color: var(--muted); }
+.axis .ticks { display: flex; justify-content: space-between; }
+.single { max-width: 560px; }
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); }
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+th, td { text-align: left; padding: 0.5rem 0.8rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: var(--s0); color: var(--muted); font-weight: 500; background: var(--band); }
+tr:last-child td { border-bottom: 0; }
+td code { white-space: nowrap; }
+pre { margin: 0; background: var(--band); border: 1px solid var(--line); border-radius: 8px; padding: 0.9rem 1rem; overflow-x: auto; font-family: var(--mono); font-size: 0.85rem; line-height: 1.55; }
+svg { max-width: 100%; height: auto; display: block; }
+svg text { font-family: var(--sans); font-size: 13px; fill: var(--ink); }
+svg .box { fill: var(--band); stroke: var(--line); }
+svg .acc { fill: var(--accent-soft); stroke: var(--accent); }
+svg .line { stroke: var(--muted); fill: none; stroke-width: 1.5; }
+footer { padding-block: 2rem 3rem; border-top: 1px solid var(--line); }
+@media (max-width: 860px) { .charts { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 760px) { .tiles { grid-template-columns: minmax(0, 1fr); } .brand { display: none; } .b, .axis { grid-template-columns: 6.6rem minmax(0, 1fr) 3.2rem; } }
+</style>
+</head>
+<body>
+<div class="bar wrap"><div class="wide bar-in">
+  <span class="brand">promote-or-hold</span>
+  <a class="gh" href="https://github.com/yashgix/promote-or-hold">GitHub ↗</a>
+</div></div>
+
+<main>
+<header class="wrap"><div class="col stack">
+  <p class="eyebrow">Agent evaluation · tau2-bench recorded trials</p>
+  <h1>promote-or-hold</h1>
+  <p class="lede">When should a new agent version replace the current one? Eleven promotion gates, plus a futility stop and two reference rules, replayed on real recorded agent trials. Each is scored on false promotions, power and cost.</p>
+  <div class="tiles">
+    <div class="tile"><span class="big warn">43.9%</span><span class="small muted">identical copies promoted by "higher mean wins" with one trial per task</span></div>
+    <div class="tile"><span class="big">2.4%</span><span class="small muted">the same trials and cost, read with a stratified test (<code>cmh_1</code>)</span></div>
+    <div class="tile"><span class="big">56.4%</span><span class="small muted">of a full evaluation's cost for the sequential gate with a futility stop</span></div>
+  </div>
+</div></header>
+
+<section class="wrap"><div class="col stack">
+  <p class="eyebrow">The problem</p>
+  <h2>A gate can be wrong in two ways</h2>
+  <p>A team that runs agents in production changes them constantly: a new model, a reworded prompt, a new policy. Each change goes through a promotion gate. It runs the candidate and the incumbent on an evaluation suite, then promotes or holds.</p>
+  <p>Agent runs are noisy. The same agent passes a task once and fails it the next time, and every run costs money. So the gate can promote a candidate that is not better, or it can spend far more runs than the decision needed. This project measures both on recorded runs instead of arguing about them.</p>
+</div></section>
+
+<section class="wrap"><div class="col stack">
+  <p class="eyebrow">Approach</p>
+  <h2>Replay every rule on the recorded world</h2>
+  <p>The data is the tau2-bench paper's published runs: four models, three customer-service domains plus setup variants, four trials of every task, with reward and dollar cost. That makes 26 configs and 52 candidate and incumbent pairs, because every comparison is counted in both directions. The pairs also include identical copies, where promoting is always wrong.</p>
+  <p>A new trial is one of the task's recorded trials, drawn at random, so the recorded runs are the world and the true difference is known. Each gate is replayed 2,000 times per pair. Fixed seeds make two runs byte-identical.</p>
+  <div class="table-wrap"><svg style="min-width:600px" viewBox="0 0 760 130" role="img" aria-label="Data flow: recorded runs, pairs, simulated trials, gate rule, metrics">
+    <defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#52625f"/></marker></defs>
+    <rect class="box" x="4" y="30" width="130" height="64" rx="8"/><text x="69" y="58" text-anchor="middle">Recorded runs</text><text x="69" y="76" text-anchor="middle">runs.csv, 10,832</text>
+    <rect class="box" x="168" y="30" width="130" height="64" rx="8"/><text x="233" y="58" text-anchor="middle">Pairs</text><text x="233" y="76" text-anchor="middle">52, true difference</text>
+    <rect class="box" x="332" y="30" width="130" height="64" rx="8"/><text x="397" y="58" text-anchor="middle">Draw trials</text><text x="397" y="76" text-anchor="middle">per round, seeded</text>
+    <rect class="acc" x="496" y="30" width="130" height="64" rx="8"/><text x="561" y="58" text-anchor="middle">Gate rule</text><text x="561" y="76" text-anchor="middle">promote, hold, wait</text>
+    <rect class="box" x="650" y="30" width="106" height="64" rx="8"/><text x="703" y="58" text-anchor="middle">Metrics</text><text x="703" y="76" text-anchor="middle">error, power, cost</text>
+    <path class="line" d="M134,62 H166" marker-end="url(#ar)"/><path class="line" d="M298,62 H330" marker-end="url(#ar)"/><path class="line" d="M462,62 H494" marker-end="url(#ar)"/><path class="line" d="M626,62 H648" marker-end="url(#ar)"/>
+    <path class="line" d="M561,96 V118 H397 V98" marker-end="url(#ar)"/><text x="480" y="112" text-anchor="middle" style="font-size:11px">not decided, draw another round</text>
+  </svg></div>
+  <p>The rules fall in four groups. The <b>mean gate</b> promotes when the candidate's mean is higher. The <b>tests</b> (a task bootstrap and a stratified Cochran-Mantel-Haenszel test, one stratum per task) promote only when the difference is clear, either one-shot or at fixed n of 1, 2 or 4 trials. <b>Sequential</b> versions look after each round with Pocock or O'Brien-Fleming boundaries, and <code>obf_futility_*</code> adds a stop that holds when the candidate is not ahead. <b>Reference rules</b> are <code>always_hold</code>, which is the floor, and <code>naive_peek</code>, the fixed test checked after every round with no correction.</p>
+</div></section>
+
+<section class="wrap"><div class="wide stack">
+  <p class="eyebrow">Results</p>
+  <h2>False promotions, power and cost for each rule</h2>
+  <p class="muted">All 52 pairs, in sample. Amber marks <code>naive_peek</code>. Every number below is drawn from <code>results/metrics_v2.json</code> by <code>tools/build_page.py</code>.</p>
+  <div class="charts">
+    <div class="panel"><h3>False promotions</h3><p class="small muted">Share of identical copies promoted. Always wrong.</p><div class="bars"><div class="b"><span class="name">always_hold</span><span class="track"><span class="fill" style="width:0.00%"></span></span><span class="v"><b>0.0%</b></span></div>
+<div class="b"><span class="name">mean_1</span><span class="track"><span class="fill" style="width:87.78%"></span></span><span class="v"><b>43.9%</b></span></div>
+<div class="b"><span class="name">mean_4</span><span class="track"><span class="fill" style="width:94.14%"></span></span><span class="v"><b>47.1%</b></span></div>
+<div class="b"><span class="name">cmh_1</span><span class="track"><span class="fill" style="width:4.77%"></span></span><span class="v"><b>2.4%</b></span></div>
+<div class="b"><span class="name">cmh_4</span><span class="track"><span class="fill" style="width:4.89%"></span></span><span class="v"><b>2.4%</b></span></div>
+<div class="b"><span class="name">naive_peek</span><span class="track"><span class="fill warn" style="width:12.19%"></span></span><span class="v"><b>6.1%</b></span></div>
+<div class="b"><span class="name">sequential_pocock</span><span class="track"><span class="fill" style="width:4.46%"></span></span><span class="v"><b>2.2%</b></span></div>
+<div class="b"><span class="name">sequential_obf</span><span class="track"><span class="fill" style="width:4.79%"></span></span><span class="v"><b>2.4%</b></span></div>
+<div class="b"><span class="name">obf_futility_0.0</span><span class="track"><span class="fill" style="width:4.73%"></span></span><span class="v"><b>2.4%</b></span></div>
+<div class="b"><span class="name">obf_futility_0.5</span><span class="track"><span class="fill" style="width:4.55%"></span></span><span class="v"><b>2.3%</b></span></div>
+<div class="b"><span class="name">obf_futility_1.0</span><span class="track"><span class="fill" style="width:3.99%"></span></span><span class="v"><b>2.0%</b></span></div>
+<div class="b"><span class="name">obf_futility_1.5</span><span class="track"><span class="fill" style="width:2.83%"></span></span><span class="v"><b>1.4%</b></span></div>
+<div class="b"><span class="name">obf_futility_2.0</span><span class="track"><span class="fill" style="width:1.54%"></span></span><span class="v"><b>0.8%</b></span></div></div><div class="axis"><span></span><span class="ticks"><span>0</span><span>10%</span><span>20%</span><span>30%</span><span>40%</span><span>50%</span></span><span></span></div></div>
+    <div class="panel"><h3>Power</h3><p class="small muted">Share of truly better candidates promoted.</p><div class="bars"><div class="b"><span class="name">always_hold</span><span class="track"><span class="fill" style="width:0.00%"></span></span><span class="v"><b>0.0%</b></span></div>
+<div class="b"><span class="name">mean_1</span><span class="track"><span class="fill" style="width:88.83%"></span></span><span class="v"><b>88.8%</b></span></div>
+<div class="b"><span class="name">mean_4</span><span class="track"><span class="fill" style="width:95.88%"></span></span><span class="v"><b>95.9%</b></span></div>
+<div class="b"><span class="name">cmh_1</span><span class="track"><span class="fill" style="width:38.64%"></span></span><span class="v"><b>38.6%</b></span></div>
+<div class="b"><span class="name">cmh_4</span><span class="track"><span class="fill" style="width:70.16%"></span></span><span class="v"><b>70.2%</b></span></div>
+<div class="b"><span class="name">naive_peek</span><span class="track"><span class="fill warn" style="width:72.29%"></span></span><span class="v"><b>72.3%</b></span></div>
+<div class="b"><span class="name">sequential_pocock</span><span class="track"><span class="fill" style="width:64.29%"></span></span><span class="v"><b>64.3%</b></span></div>
+<div class="b"><span class="name">sequential_obf</span><span class="track"><span class="fill" style="width:69.24%"></span></span><span class="v"><b>69.2%</b></span></div>
+<div class="b"><span class="name">obf_futility_0.0</span><span class="track"><span class="fill" style="width:69.21%"></span></span><span class="v"><b>69.2%</b></span></div>
+<div class="b"><span class="name">obf_futility_0.5</span><span class="track"><span class="fill" style="width:68.93%"></span></span><span class="v"><b>68.9%</b></span></div>
+<div class="b"><span class="name">obf_futility_1.0</span><span class="track"><span class="fill" style="width:67.11%"></span></span><span class="v"><b>67.1%</b></span></div>
+<div class="b"><span class="name">obf_futility_1.5</span><span class="track"><span class="fill" style="width:61.74%"></span></span><span class="v"><b>61.7%</b></span></div>
+<div class="b"><span class="name">obf_futility_2.0</span><span class="track"><span class="fill" style="width:52.62%"></span></span><span class="v"><b>52.6%</b></span></div></div><div class="axis"><span></span><span class="ticks"><span>0</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></span><span></span></div></div>
+    <div class="panel"><h3>Cost</h3><p class="small muted">Share of a full four-trial evaluation, real pairs.</p><div class="bars"><div class="b"><span class="name">always_hold</span><span class="track"><span class="fill" style="width:0.00%"></span></span><span class="v"><b>0.0%</b></span></div>
+<div class="b"><span class="name">mean_1</span><span class="track"><span class="fill" style="width:25.00%"></span></span><span class="v"><b>25.0%</b></span></div>
+<div class="b"><span class="name">mean_4</span><span class="track"><span class="fill" style="width:100.00%"></span></span><span class="v"><b>100.0%</b></span></div>
+<div class="b"><span class="name">cmh_1</span><span class="track"><span class="fill" style="width:25.00%"></span></span><span class="v"><b>25.0%</b></span></div>
+<div class="b"><span class="name">cmh_4</span><span class="track"><span class="fill" style="width:100.00%"></span></span><span class="v"><b>100.0%</b></span></div>
+<div class="b"><span class="name">naive_peek</span><span class="track"><span class="fill warn" style="width:53.73%"></span></span><span class="v"><b>53.7%</b></span></div>
+<div class="b"><span class="name">sequential_pocock</span><span class="track"><span class="fill" style="width:61.00%"></span></span><span class="v"><b>61.0%</b></span></div>
+<div class="b"><span class="name">sequential_obf</span><span class="track"><span class="fill" style="width:71.47%"></span></span><span class="v"><b>71.5%</b></span></div>
+<div class="b"><span class="name">obf_futility_0.0</span><span class="track"><span class="fill" style="width:60.26%"></span></span><span class="v"><b>60.3%</b></span></div>
+<div class="b"><span class="name">obf_futility_0.5</span><span class="track"><span class="fill" style="width:58.44%"></span></span><span class="v"><b>58.4%</b></span></div>
+<div class="b"><span class="name">obf_futility_1.0</span><span class="track"><span class="fill" style="width:56.42%"></span></span><span class="v"><b>56.4%</b></span></div>
+<div class="b"><span class="name">obf_futility_1.5</span><span class="track"><span class="fill" style="width:54.01%"></span></span><span class="v"><b>54.0%</b></span></div>
+<div class="b"><span class="name">obf_futility_2.0</span><span class="track"><span class="fill" style="width:51.65%"></span></span><span class="v"><b>51.7%</b></span></div></div><div class="axis"><span></span><span class="ticks"><span>0</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></span><span></span></div></div>
+  </div>
+  <p class="col" style="width:100%">Read across one row. <code>mean_1</code> is cheap and powerful, and it promotes an identical copy 43.9% of the time. <code>cmh_1</code> costs the same and promotes copies 2.4% of the time, at a power of only 38.6%. <code>always_hold</code> shows what perfect safety with no use looks like.</p>
+</div></section>
+
+<section class="wrap"><div class="col stack">
+  <p class="eyebrow">Two effects</p>
+  <h2>A test stops false promotions. Sequential stopping saves money.</h2>
+  <ul>
+    <li><b>Test versus mean gate, at equal cost.</b> <code>mean_1</code> and <code>cmh_1</code> see exactly the same trials. Only the way they read noise differs, and that takes false promotions from 43.9% to 2.4%.</li>
+    <li><b>Sequential versus fixed, at equal error.</b> <code>sequential_obf</code> promotes 69.2% of better candidates against 70.2% for <code>cmh_4</code>, at 71.5% of the cost. But when the change does nothing, it rarely stops early and costs 99.4%.</li>
+    <li><b>A futility stop fixes that case.</b> <code>obf_futility_1.0</code> holds early when the candidate is not ahead. It promotes 2.0% of identical copies, 67.1% of better candidates, and costs 56.4% on real pairs and 56.2% on identical copies.</li>
+    <li><b>Safety costs power.</b> Every safe rule misses most small gains. See the table of power by true difference in the README.</li>
+  </ul>
+</div></section>
+
+<section class="wrap"><div class="wide stack">
+  <p class="eyebrow">The warning</p>
+  <h2>Checking the numbers every round looks cheaper and stronger</h2>
+  <div class="callout col" style="width:100%"><b>Naive peeking promotes 6.1% of identical copies.</b> That is <code>naive_peek</code>, the fixed test checked after every round with no correction, which is what a team does when it just keeps an eye on the numbers. It also looks good on the other two axes, with a power of 72.3% and a cost of 53.7%. It looks that way only because it is allowed more errors. The sequential boundaries exist to spend the error budget across looks.</div>
+  <div class="single"><div class="panel"><h3>Zoom on the statistical tests</h3><p class="small muted">Identical copies promoted, scale 0 to 7%. A correct test at the 5% two-sided level promotes about 2.5%.</p><div class="bars"><div class="b"><span class="name">cmh_1</span><span class="track"><span class="fill" style="width:34.04%"></span></span><span class="v"><b>2.4%</b></span></div>
+<div class="b"><span class="name">cmh_4</span><span class="track"><span class="fill" style="width:34.92%"></span></span><span class="v"><b>2.4%</b></span></div>
+<div class="b"><span class="name">naive_peek</span><span class="track"><span class="fill warn" style="width:87.06%"></span></span><span class="v"><b>6.1%</b></span></div>
+<div class="b"><span class="name">sequential_pocock</span><span class="track"><span class="fill" style="width:31.87%"></span></span><span class="v"><b>2.2%</b></span></div>
+<div class="b"><span class="name">sequential_obf</span><span class="track"><span class="fill" style="width:34.20%"></span></span><span class="v"><b>2.4%</b></span></div>
+<div class="b"><span class="name">obf_futility_1.0</span><span class="track"><span class="fill" style="width:28.52%"></span></span><span class="v"><b>2.0%</b></span></div></div><div class="axis"><span></span><span class="ticks"><span>0</span><span>2%</span><span>4%</span><span>7%</span></span><span></span></div></div></div>
+</div></section>
+
+<section class="wrap"><div class="wide stack">
+  <p class="eyebrow">Held-out domains</p>
+  <h2>An exploratory check, not a validation</h2>
+  <p class="col" style="width:100%">The selection procedure picks the rule on two domains and scores it on the third. It picks <code>obf_futility_1.0</code> in each of the three folds. The numbers sit near the all-data ones, which is a consistency check. The procedure, its caps and the futility thresholds were designed after looking at every domain, the folds are small, and no intervals are given, so this is not independent validation.</p>
+  <div class="table-wrap"><table><thead><tr><th>Held out</th><th>Rule</th><th>Identical copy promoted</th><th>Better promoted</th><th>Cost, real pairs</th></tr></thead><tbody><tr><td>airline</td><td><code>obf_futility_1.0 (pick)</code></td><td>1.8%</td><td>33.1%</td><td>60.8%</td></tr><tr><td>airline</td><td><code>sequential_obf</code></td><td>2.3%</td><td>36.1%</td><td>95.0%</td></tr><tr><td>airline</td><td><code>cmh_4</code></td><td>2.3%</td><td>37.9%</td><td>100.0%</td></tr><tr><td>airline</td><td><code>cmh_1</code></td><td>2.2%</td><td>5.2%</td><td>25.0%</td></tr><tr><td>retail</td><td><code>obf_futility_1.0 (pick)</code></td><td>2.1%</td><td>66.8%</td><td>59.7%</td></tr><tr><td>retail</td><td><code>sequential_obf</code></td><td>2.5%</td><td>69.8%</td><td>78.2%</td></tr><tr><td>retail</td><td><code>cmh_4</code></td><td>2.6%</td><td>71.0%</td><td>100.0%</td></tr><tr><td>retail</td><td><code>cmh_1</code></td><td>2.7%</td><td>26.6%</td><td>25.0%</td></tr><tr><td>telecom</td><td><code>obf_futility_1.0 (pick)</code></td><td>2.0%</td><td>81.9%</td><td>54.9%</td></tr><tr><td>telecom</td><td><code>sequential_obf</code></td><td>2.4%</td><td>83.2%</td><td>66.4%</td></tr><tr><td>telecom</td><td><code>cmh_4</code></td><td>2.4%</td><td>83.6%</td><td>100.0%</td></tr><tr><td>telecom</td><td><code>cmh_1</code></td><td>2.4%</td><td>58.1%</td><td>25.0%</td></tr></tbody></table></div>
+</div></section>
+
+<section class="wrap"><div class="col stack">
+  <p class="eyebrow">What v2 changed</p>
+  <h2>The headline was reworded, the evidence was widened</h2>
+  <p>v1 read as "the sequential gate lowers false promotions at lower cost". The data support two separate claims instead, shown above. v2 added the futility rules, the two reference rules (<code>always_hold</code>, <code>naive_peek</code>), the held-out folds, a power-by-difference table, a smoothed-noise world and a grid of caps. The v1 results file stays byte-identical.</p>
+  <p>After an independent review the futility grid was extended with two larger thresholds, because the first grid stopped at the picked one. The pick, <code>obf_futility_1.0</code>, now sits at an interior point of the grid, and the larger thresholds lose more power than the slack allows.</p>
+</div></section>
+
+<section class="wrap"><div class="col stack">
+  <p class="eyebrow">Limitations</p>
+  <h2>How small this is</h2>
+  <ul>
+    <li>Only 26 distinct comparisons. Each is counted in both directions, and some configs appear in several. Group rates are averages over a few dozen comparisons, not independent measurements.</li>
+    <li>The v1 rule was picked in sample, with caps set after a prototype run on the same data.</li>
+    <li>The three domain folds are exploratory post-selection checks and carry no intervals.</li>
+    <li>The recorded runs are the world, with at most four trials per task. Real noise may be larger. Error rates are relative to this simulated world, not to agents' true quality.</li>
+    <li>2025 models and prices, customer-service domains, and the paper's June 2025 task sets. Nothing here speaks to current agents.</li>
+    <li>The statistical gates promote a worse candidate rarely, not never. The rates round to zero in the tables.</li>
+  </ul>
+</div></section>
+
+<section class="wrap"><div class="col stack">
+  <p class="eyebrow">Reproduce</p>
+  <h2>Two commands</h2>
+<pre>git clone https://github.com/yashgix/promote-or-hold
+cd promote-or-hold
+make test         # own tests and the v1 acceptance tests
+make experiment   # rewrites results/, byte for byte</pre>
+  <p>Data: <code>data/runs.csv</code> is a numeric extract of the tau2-bench paper's runs (Sierra Research, MIT license), pinned by checksum in <code>data/MANIFEST.json</code>. <code>tools/fetch_data.py</code> rebuilds it from upstream.</p>
+</div></section>
+</main>
+
+<footer class="wrap"><div class="col small muted">Built with Arcturus (Claude Code builders, Codex review), then reviewed and verified by hand. <a href="https://github.com/yashgix/promote-or-hold">github.com/yashgix/promote-or-hold</a></div></footer>
+</body>
+</html>

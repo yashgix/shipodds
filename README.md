@@ -343,6 +343,7 @@ None of the statistics here is new. The measurement on real agent trials is the 
 
 ```
 promote_or_hold/   data loading, gate rules, simulation, metrics, v2 checks, experiment, report rendering
+tools/             fetch_data.py rebuilds the data extract, build_page.py renders docs/index.html from results/
 experiment.py      replays every gate on every pair and writes results/metrics.json and results/metrics_v2.json
 demo.py            one-line summary, or renders the results block in this README
 tests/             unit tests (unittest), with the v1 acceptance tests unchanged in tests/acceptance/
