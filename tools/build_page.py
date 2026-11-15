@@ -69,7 +69,7 @@ def fold_table(v2):
     return f"<table><thead><tr>{head}</tr></thead><tbody>{''.join(rows)}</tbody></table>"
 
 
-def main():
+def render():
     v2 = json.loads((ROOT / "results" / "metrics_v2.json").read_text())
     at = lambda key, rule: v2[key][v2["rules"].index(rule)]  # noqa: E731
     charts = {
@@ -121,7 +121,11 @@ def main():
     page = (ROOT / "tools" / "page_template.html").read_text()
     for key, text in {**charts, **values}.items():
         page = page.replace("{{" + key + "}}", text)
-    (ROOT / "docs" / "index.html").write_text(page)
+    return page
+
+
+def main():
+    (ROOT / "docs" / "index.html").write_text(render())
 
 
 if __name__ == "__main__":
