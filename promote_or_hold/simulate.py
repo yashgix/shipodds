@@ -6,10 +6,12 @@ import numpy as np
 
 from .data import TRIALS
 from .gates import (
+    NAIVE_PEEK,
     OBRIEN_FLEMING,
     POCOCK,
     ROUNDS,
     RULES,
+    always_hold_gate,
     bootstrap_gate,
     bootstrap_weights,
     cmh_gate,
@@ -53,18 +55,30 @@ def outcomes(ya, yb, cost, weights):
         results[f"bootstrap_{k}"] = (bootstrap_gate(sa, sb, weights), runs, usd)
         results[f"cmh_{k}"] = (cmh_gate(sa, sb, k), runs, usd)
 
-    for name, bounds in (("sequential_pocock", POCOCK), ("sequential_obf", OBRIEN_FLEMING)):
-        decisions, rounds_used = sequential_gate(ya, yb, bounds)
-        mask = np.arange(ROUNDS)[None, :] < rounds_used[:, None]
-        usd = (cost * mask[:, None, :]).sum(axis=(1, 2))
-        runs = 2 * n * rounds_used
-        results[name] = (decisions, runs, usd)
-
+    results["sequential_pocock"] = _sequential(ya, yb, cost, POCOCK)
+    results["sequential_obf"] = _sequential(ya, yb, cost, OBRIEN_FLEMING)
     return {rule: results[rule] for rule in RULES}
 
 
-def simulate(configs, pair, index, replicates=REPLICATES):
-    """Replay every rule on one pair and summarize decisions, runs and cost."""
+def baseline_outcomes(ya, yb, cost):
+    """Run the v2 reference rules: always hold, and a fixed CMH test checked after every round."""
+    replicates = ya.shape[0]
+    nothing = np.zeros(replicates, dtype=np.int64)
+    return {
+        "always_hold": (always_hold_gate(replicates), nothing, nothing.astype(float)),
+        "naive_peek": _sequential(ya, yb, cost, NAIVE_PEEK),
+    }
+
+
+def _sequential(ya, yb, cost, bounds):
+    decisions, rounds_used = sequential_gate(ya, yb, bounds)
+    mask = np.arange(ROUNDS)[None, :] < rounds_used[:, None]
+    usd = (cost * mask[:, None, :]).sum(axis=(1, 2))
+    return decisions, 2 * ya.shape[1] * rounds_used, usd
+
+
+def simulate(configs, pair, index, replicates=REPLICATES, baselines=False):
+    """Replay every rule (and, if asked, the reference rules) on one pair and summarize decisions, runs and cost."""
     a = configs[pair.incumbent]
     b = configs[pair.candidate]
     if a.tasks != b.tasks:
@@ -72,9 +86,10 @@ def simulate(configs, pair, index, replicates=REPLICATES):
     rng = np.random.default_rng([SEED, 1, index])
     ya, yb, cost = draw(a, b, rng, replicates)
     results = outcomes(ya, yb, cost, weights_for(len(a.tasks)))
+    if baselines:
+        results |= baseline_outcomes(ya, yb, cost)
     summary = {}
-    for rule in RULES:
-        decisions, runs, usd = results[rule]
+    for rule, (decisions, runs, usd) in results.items():
         summary[rule] = {
             "promote": float(np.mean(decisions == 1)),
             "hold": float(np.mean(decisions == -1)),

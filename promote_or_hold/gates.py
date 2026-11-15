@@ -20,6 +20,9 @@ RULES = (
     "sequential_pocock",
     "sequential_obf",
 )
+# Reference rules added in v2 (SPEC-v2.md). They are reported next to RULES but never recommended.
+BASELINE_RULES = ("always_hold", "naive_peek")
+NAIVE_PEEK = (Z_95,) * ROUNDS
 
 
 def mean_gate(sa, sb):
@@ -27,6 +30,11 @@ def mean_gate(sa, sb):
     sa = np.asarray(sa)
     sb = np.asarray(sb)
     return np.where(sb.sum(axis=-1) > sa.sum(axis=-1), 1, -1).astype(np.int64)
+
+
+def always_hold_gate(replicates):
+    """Keep the incumbent every time: never promotes, never pays for a run."""
+    return np.full(replicates, -1, dtype=np.int64)
 
 
 def bootstrap_weights(n, rng, draws=BOOTSTRAP_DRAWS):

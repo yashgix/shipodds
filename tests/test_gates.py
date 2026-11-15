@@ -5,12 +5,15 @@ import unittest
 import numpy as np
 
 from promote_or_hold.gates import (
+    BASELINE_RULES,
     BOOTSTRAP_DRAWS,
+    NAIVE_PEEK,
     OBRIEN_FLEMING,
     POCOCK,
     ROUNDS,
     RULES,
     Z_95,
+    always_hold_gate,
     bootstrap_gate,
     bootstrap_weights,
     cmh_gate,
@@ -122,6 +125,17 @@ class SequentialGateTests(unittest.TestCase):
         decisions, rounds_used = sequential_gate(ya, yb, POCOCK)
         np.testing.assert_array_equal(decisions, np.array([1, -1, 0]))
         np.testing.assert_array_equal(rounds_used, np.array([2, 2, 4]))
+
+
+class ReferenceRuleTests(unittest.TestCase):
+    def test_reference_rules_are_separate_from_v1_rules(self):
+        self.assertEqual(BASELINE_RULES, ("always_hold", "naive_peek"))
+        self.assertFalse(set(BASELINE_RULES) & set(RULES))
+        self.assertEqual(NAIVE_PEEK, (Z_95,) * ROUNDS)
+
+    def test_always_hold(self):
+        np.testing.assert_array_equal(always_hold_gate(3), [-1, -1, -1])
+        self.assertEqual(always_hold_gate(3).dtype.kind, "i")
 
 
 if __name__ == "__main__":

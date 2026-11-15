@@ -1,4 +1,4 @@
-"""Render README results and the one-line demo summary from metrics.json."""
+"""Render README results and the one-line demo summary from metrics.json and metrics_v2.json."""
 
 from .data import load
 from .gates import RULES
@@ -15,6 +15,17 @@ MARKER_END = "<!-- results:end -->"
 DECISIONS = {1: "promote", -1: "hold", 0: "inconclusive"}
 PAIR_RULES = ("mean_1", "cmh_4", "sequential_obf")
 PAIR_RULE_POSITIONS = tuple(RULES.index(rule) for rule in PAIR_RULES)
+TRADEOFF_RULES = (
+    "always_hold",
+    "mean_1",
+    "mean_4",
+    "cmh_1",
+    "cmh_4",
+    "naive_peek",
+    "sequential_pocock",
+    "sequential_obf",
+)
+TRADEOFF_KEYS = ("aa_promote", "worse_promote", "better_promote", "better_hold", "better_inconclusive", "cost_share")
 
 
 def short_model(model):
@@ -149,9 +160,71 @@ def pair_table(metrics, pairs=None):
     return "\n".join(lines)
 
 
-def results_block(metrics, pairs=None):
+def rule_view(metrics, v2):
+    """Return {rule: {key: value}} for the trade-off keys over the v1 rules and the v2 reference rules."""
+    rules = (*RULES, *v2["rules"])
+    return {rule: {key: (metrics[key] + v2[key])[i] for key in TRADEOFF_KEYS} for i, rule in enumerate(rules)}
+
+
+def headline(metrics, v2):
+    """Return the generated headline: the two effects, the peeking check, and what safety costs in power."""
+    view = rule_view(metrics, v2)
+    mean, test, fixed, seq, peek = (view[r] for r in ("mean_1", "cmh_1", "cmh_4", "sequential_obf", "naive_peek"))
+    return (
+        "**Two separate effects.** A proper test instead of the mean gate is what lowers false promotions. "
+        f"With one trial per task and the same cost, mean_1 promotes an identical copy {pct(mean['aa_promote'])} "
+        f"of the time and cmh_1 {pct(test['aa_promote'])}. A sequential test instead of a fixed one is what lowers "
+        f"cost. sequential_obf promotes {pct(seq['better_promote'])} of truly better candidates against "
+        f"{pct(fixed['better_promote'])} for cmh_4, at {pct(seq['cost_share'])} of a full evaluation's cost "
+        f"instead of {pct(fixed['cost_share'])}. Both promote an identical copy about as often "
+        f"({pct(seq['aa_promote'])} and {pct(fixed['aa_promote'])}). The sequential boundaries matter: checking "
+        f"the fixed test after every round (naive_peek) promotes an identical copy {pct(peek['aa_promote'])} of "
+        f"the time. Its better power ({pct(peek['better_promote'])}) and lower cost ({pct(peek['cost_share'])}) "
+        "come from that looser error rate. Safety costs power: mean_1 promotes "
+        f"{pct(mean['better_promote'])} of better candidates, "
+        f"sequential_obf {pct(seq['better_promote'])}, and always_hold none."
+    )
+
+
+def caveat(metrics, v2):
+    """Return the paragraph that says how far the numbers can be trusted."""
+    return (
+        f"The {metrics['pairs']} pairs are only {v2['distinct_comparisons']} distinct comparisons, each counted in "
+        "both directions, and some configs appear in several comparisons, so the group rates are not "
+        f"{metrics['pairs']} independent measurements. The recommended rule was picked on these same results, by a "
+        "rule whose caps were set after a prototype run on the same data. It has not been checked on held-out data."
+    )
+
+
+def tradeoff_table(metrics, v2):
+    """Return the side-by-side table of false promotions, power, false rejections and cost."""
+    header = (
+        "Rule",
+        "Identical copy promoted",
+        "Worse promoted",
+        "Better promoted (power)",
+        "Better held (false rejection)",
+        "Better inconclusive (incumbent kept)",
+        "Share of full evaluation",
+    )
+    view = rule_view(metrics, v2)
+    lines = ["| " + " | ".join(header) + " |", "|" + "|".join(["---"] * len(header)) + "|"]
+    for rule in TRADEOFF_RULES:
+        lines.append("| " + " | ".join((rule, *(pct(view[rule][key]) for key in TRADEOFF_KEYS))) + " |")
+    return "\n".join(lines)
+
+
+def results_block(metrics, v2, pairs=None):
     """Return the complete text that belongs between the README markers."""
-    return "\n\n".join((results_paragraph(metrics), rule_table(metrics), pair_table(metrics, pairs)))
+    parts = (
+        headline(metrics, v2),
+        caveat(metrics, v2),
+        tradeoff_table(metrics, v2),
+        results_paragraph(metrics),
+        rule_table(metrics),
+        pair_table(metrics, pairs),
+    )
+    return "\n\n".join(parts)
 
 
 def replace_results(text, block):
@@ -165,6 +238,6 @@ def replace_results(text, block):
     return f"{text[: start + len(MARKER_START)]}\n{block.strip()}\n{text[end:]}"
 
 
-def render_readme(text, metrics, pairs=None):
-    """Return the README with its results block rendered from metrics."""
-    return replace_results(text, results_block(metrics, pairs))
+def render_readme(text, metrics, v2, pairs=None):
+    """Return the README with its results block rendered from the v1 and v2 metrics."""
+    return replace_results(text, results_block(metrics, v2, pairs))

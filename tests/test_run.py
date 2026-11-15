@@ -10,11 +10,13 @@ import numpy as np
 
 from promote_or_hold import DATA_DIR
 from promote_or_hold.data import TRIALS, Config
-from promote_or_hold.gates import RULES
+from promote_or_hold.gates import BASELINE_RULES, RULES
 from promote_or_hold.pairs import Pair
 from promote_or_hold.run import (
     ERROR_CAP,
     POWER_SLACK,
+    V2_NAME,
+    distinct_comparisons,
     full_cost,
     main,
     recommend,
@@ -226,8 +228,9 @@ class ControlledMainTests(unittest.TestCase):
                 "cost_usd": float((position + 1) + 0.1 * index),
             }
 
-        def fake_simulate(configs, pair, index, replicates):
-            return {rule: summary(index, position) for position, rule in enumerate(RULES)}
+        def fake_simulate(configs, pair, index, replicates, baselines):
+            self.assertTrue(baselines)
+            return {rule: summary(index, position) for position, rule in enumerate(RULES + BASELINE_RULES)}
 
         def fake_cost(configs, pair):
             del configs, pair
@@ -257,6 +260,17 @@ class ControlledMainTests(unittest.TestCase):
             ):
                 main("ignored", out, replicates=3)
             metrics = json.loads(out.read_text())
+            v2 = json.loads(out.with_name(V2_NAME).read_text())
+
+        self.assertEqual(v2["rules"], list(BASELINE_RULES))
+        self.assertEqual(v2["distinct_comparisons"], 2)
+        first_baseline = len(RULES)
+        self.assertAlmostEqual(v2["better_promote"][0], summary(2, first_baseline)["promote"])
+        self.assertAlmostEqual(
+            v2["aa_promote"][1],
+            (summary(3, first_baseline + 1)["promote"] + summary(4, first_baseline + 1)["promote"]) / 2,
+        )
+        self.assertEqual(len(v2["cost_share"]), len(BASELINE_RULES))
 
         self.assertEqual([call.args[2] for call in simulate_mock.call_args_list], [0, 1, 2, 3, 4])
         self.assertEqual(metrics["configs"], 2)
@@ -308,3 +322,10 @@ class ControlledMainTests(unittest.TestCase):
         np.testing.assert_allclose(metrics["mean_cost_usd"], expected_mean_cost, atol=1e-8)
         np.testing.assert_allclose(metrics["cost_share"], expected_cost_share, atol=1e-8)
         self.assertEqual(metrics["recommended_rule"], 0)
+
+
+class DistinctComparisonTests(unittest.TestCase):
+    def test_reverse_pair_is_the_same_comparison(self):
+        a, b, c = ("a", "d", "default"), ("b", "d", "default"), ("c", "d", "default")
+        pairs = [Pair("model", a, b), Pair("model", b, a), Pair("model", a, c)]
+        self.assertEqual(distinct_comparisons(pairs), 2)

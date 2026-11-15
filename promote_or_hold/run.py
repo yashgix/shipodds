@@ -5,12 +5,13 @@ from pathlib import Path
 
 from . import DATA_DIR
 from .data import TRIALS, load
-from .gates import BOOTSTRAP_DRAWS, ROUNDS, RULES, cmh_gate
+from .gates import BASELINE_RULES, BOOTSTRAP_DRAWS, ROUNDS, RULES, cmh_gate
 from .pairs import aa_pairs, delta, real_pairs
 from .simulate import REPLICATES, simulate
 
 ERROR_CAP = 0.05
 POWER_SLACK = 0.05
+V2_NAME = "metrics_v2.json"
 
 
 def recorded_decision(configs, pair):
@@ -62,14 +63,41 @@ def _rounded(value):
     return value
 
 
+def rule_metrics(real_summaries, aa_summaries, worse, better, rules, full_cost_usd):
+    """Return per-rule group outcome rates, mean runs and mean cost for the given rules."""
+    metrics = {}
+    for group, indices, summaries in (
+        ("aa", range(len(aa_summaries)), aa_summaries),
+        ("worse", worse, real_summaries),
+        ("better", better, real_summaries),
+    ):
+        for outcome in ("promote", "hold", "inconclusive"):
+            metrics[f"{group}_{outcome}"] = [_group_rate(summaries, indices, rule, outcome) for rule in rules]
+    real = range(len(real_summaries))
+    metrics["mean_runs"] = [_mean(real_summaries[i][rule]["runs"] for i in real) for rule in rules]
+    metrics["mean_cost_usd"] = [_mean(real_summaries[i][rule]["cost_usd"] for i in real) for rule in rules]
+    metrics["cost_share"] = [cost / full_cost_usd for cost in metrics["mean_cost_usd"]]
+    return metrics
+
+
+def distinct_comparisons(pairs):
+    """Count comparisons ignoring direction: a pair and its reverse are one comparison."""
+    return len({frozenset((pair.incumbent, pair.candidate)) for pair in pairs})
+
+
+def _write(path, metrics):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(_rounded(metrics), indent=1, sort_keys=True) + "\n")
+
+
 def main(data_dir=DATA_DIR, out="results/metrics.json", replicates=REPLICATES):
-    """Simulate every real and identical-copy pair and write the metrics JSON."""
+    """Simulate every real and identical-copy pair and write the v1 metrics and, beside them, the v2 metrics."""
     configs = load(data_dir)
     real = real_pairs(configs)
     copies = aa_pairs(configs)
 
-    real_summaries = [simulate(configs, pair, i, replicates) for i, pair in enumerate(real)]
-    aa_summaries = [simulate(configs, pair, len(real) + i, replicates) for i, pair in enumerate(copies)]
+    real_summaries = [simulate(configs, pair, i, replicates, baselines=True) for i, pair in enumerate(real)]
+    aa_summaries = [simulate(configs, pair, len(real) + i, replicates, baselines=True) for i, pair in enumerate(copies)]
 
     deltas = [delta(configs, pair) for pair in real]
     full_costs = [full_cost(configs, pair) for pair in real]
@@ -100,22 +128,12 @@ def main(data_dir=DATA_DIR, out="results/metrics.json", replicates=REPLICATES):
         "pair_hold": [real_summaries[i][rule]["hold"] for rule in RULES for i in range(len(real))],
         "aa_pair_promote": [aa_summaries[i][rule]["promote"] for rule in RULES for i in range(len(copies))],
     }
-
-    for group, indices, summaries in (
-        ("aa", range(len(copies)), aa_summaries),
-        ("worse", worse, real_summaries),
-        ("better", better, real_summaries),
-    ):
-        for outcome in ("promote", "hold", "inconclusive"):
-            metrics[f"{group}_{outcome}"] = [_group_rate(summaries, indices, rule, outcome) for rule in RULES]
-
-    mean_runs = [_mean(real_summaries[i][rule]["runs"] for i in range(len(real))) for rule in RULES]
-    mean_cost = [_mean(real_summaries[i][rule]["cost_usd"] for i in range(len(real))) for rule in RULES]
-    metrics["mean_runs"] = mean_runs
-    metrics["mean_cost_usd"] = mean_cost
-    metrics["cost_share"] = [cost / full_cost_usd for cost in mean_cost]
+    metrics |= rule_metrics(real_summaries, aa_summaries, worse, better, RULES, full_cost_usd)
     metrics["recommended_rule"] = recommend(metrics)
 
+    v2 = {"rules": list(BASELINE_RULES), "distinct_comparisons": distinct_comparisons(real)}
+    v2 |= rule_metrics(real_summaries, aa_summaries, worse, better, BASELINE_RULES, full_cost_usd)
+
     path = Path(out)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(_rounded(metrics), indent=1, sort_keys=True) + "\n")
+    _write(path, metrics)
+    _write(path.with_name(V2_NAME), v2)

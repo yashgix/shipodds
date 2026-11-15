@@ -8,12 +8,16 @@ from promote_or_hold.pairs import Pair
 from promote_or_hold.report import (
     MARKER_END,
     MARKER_START,
+    TRADEOFF_RULES,
+    caveat,
+    headline,
     pair_table,
     pct,
     replace_results,
     results_paragraph,
     rule_table,
     summary_line,
+    tradeoff_table,
 )
 
 
@@ -87,6 +91,38 @@ def make_metrics():
     metrics["cost_share"] = [0.1] * rules
     metrics["cost_share"][4] = 0.7
     return metrics
+
+
+def make_v2():
+    v2 = {"rules": ["always_hold", "naive_peek"], "distinct_comparisons": 2}
+    for key in ("aa_promote", "worse_promote", "better_promote", "better_inconclusive", "cost_share"):
+        v2[key] = [0.0, 0.062]
+    v2["better_hold"] = [1.0, 0.05]
+    return v2
+
+
+class V2TextTests(unittest.TestCase):
+    def setUp(self):
+        self.metrics = make_metrics()
+        self.metrics["aa_promote"][RULES.index("cmh_1")] = 0.023
+        self.metrics["better_promote"][RULES.index("sequential_obf")] = 0.692
+        self.v2 = make_v2()
+
+    def test_headline_names_both_effects_and_the_peeking_rate(self):
+        text = headline(self.metrics, self.v2)
+        for fragment in ("mean_1 promotes an identical copy 43.9%", "cmh_1 2.3%", "sequential_obf promotes 69.2%"):
+            self.assertIn(fragment, text)
+        self.assertIn("(naive_peek) promotes an identical copy 6.2%", text)
+        self.assertIn("Its better power (6.2%) and lower cost (6.2%)", text)
+
+    def test_caveat_counts_distinct_comparisons(self):
+        self.assertIn("3 pairs are only 2 distinct comparisons", caveat(self.metrics, self.v2))
+
+    def test_tradeoff_table_rows_and_reference_rules(self):
+        table = tradeoff_table(self.metrics, self.v2)
+        rows = [line for line in table.splitlines() if line.startswith("| ")][1:]
+        self.assertEqual([row.split("|")[1].strip() for row in rows], list(TRADEOFF_RULES))
+        self.assertEqual(rows[0], "| always_hold | 0.0% | 0.0% | 0.0% | 100.0% | 0.0% | 0.0% |")
 
 
 class PercentTests(unittest.TestCase):
