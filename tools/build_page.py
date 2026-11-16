@@ -50,7 +50,8 @@ def panel(title, note, body, ticks):
 
 def fold_table(v2):
     head = "".join(
-        f"<th>{h}</th>" for h in ("Held out", "Rule", "Identical copy promoted", "Better promoted", "Cost, real pairs")
+        f"<th>{h}</th>"
+        for h in ("Held out", "Rule", "Identical copy promoted", "Better promoted", "Better held", "Cost, real pairs")
     )
     rows = []
     for fold in v2["folds"]:
@@ -63,6 +64,7 @@ def fold_table(v2):
                 f"<code>{label}</code>",
                 pct(fold["aa_promote"][i]),
                 pct(fold["better_promote"][i]),
+                pct(fold["better_hold"][i]),
                 pct(fold["cost_share"][i]),
             )
             rows.append("<tr>" + "".join(f"<td>{c}</td>" for c in cells) + "</tr>")
@@ -111,6 +113,7 @@ def render():
         "CMH4_POWER": pct(at("better_promote", "cmh_4")),
         "OBF_COST": pct(at("cost_share", "sequential_obf")),
         "FUT_POWER": pct(at("better_promote", "obf_futility_1.0")),
+        "FUT_HELD": pct(at("better_hold", "obf_futility_1.0")),
         "FUT_COST": pct(at("cost_share", "obf_futility_1.0")),
         "FUT_COST_AA": pct(at("aa_cost_share", "obf_futility_1.0")),
         "FUT_FALSE": pct(at("aa_promote", "obf_futility_1.0")),
