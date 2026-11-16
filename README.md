@@ -4,7 +4,7 @@
 
 Write-up with charts: <https://yashgix.github.io/shipodds/>
 
-Renamed from `promote-or-hold` on 16 Nov 2026. Frozen specs and git tags keep the old name.
+Renamed from `promote-or-hold` on 16 Nov 2026. Frozen files and git tags keep the old name.
 
 A team that runs AI agents in production changes them all the time: a new model, a new prompt, a new policy. Each
 change goes through a *promotion gate*. It runs the candidate and the current version (the incumbent) on an
