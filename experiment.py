@@ -3,9 +3,9 @@
 import argparse
 from pathlib import Path
 
-from promote_or_hold import DATA_DIR
-from promote_or_hold.run import main
-from promote_or_hold.simulate import REPLICATES
+from shipodds import DATA_DIR
+from shipodds.run import main
+from shipodds.simulate import REPLICATES
 
 
 def parse_args():

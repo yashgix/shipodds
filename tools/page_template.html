@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>promote-or-hold</title>
+<title>shipodds</title>
 <meta name="description" content="When should a new agent version replace the current one? Promotion gates replayed on recorded tau2-bench trials: false promotions, power and cost.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -81,14 +81,14 @@ footer { padding-block: 2rem 3rem; border-top: 1px solid var(--line); }
 </head>
 <body>
 <div class="bar wrap"><div class="wide bar-in">
-  <span class="brand">promote-or-hold</span>
-  <a class="gh" href="https://github.com/yashgix/promote-or-hold">GitHub ↗</a>
+  <span class="brand">shipodds</span>
+  <a class="gh" href="https://github.com/yashgix/shipodds">GitHub ↗</a>
 </div></div>
 
 <main>
 <header class="wrap"><div class="col stack">
   <p class="eyebrow">Agent evaluation · tau2-bench recorded trials</p>
-  <h1>promote-or-hold</h1>
+  <h1>shipodds</h1>
   <p class="lede">When should a new agent version replace the current one? Eleven promotion gates, plus a futility stop and two reference rules, replayed on real recorded agent trials. Each is scored on false promotions, power and cost.</p>
   <div class="tiles">
     <div class="tile"><span class="big warn">{{MEAN1_FALSE}}</span><span class="small muted">identical copies promoted by "higher mean wins" with one trial per task</span></div>
@@ -182,14 +182,14 @@ footer { padding-block: 2rem 3rem; border-top: 1px solid var(--line); }
 <section class="wrap"><div class="col stack">
   <p class="eyebrow">Reproduce</p>
   <h2>Two commands</h2>
-<pre>git clone https://github.com/yashgix/promote-or-hold
-cd promote-or-hold
+<pre>git clone https://github.com/yashgix/shipodds
+cd shipodds
 make test         # own tests and the v1 acceptance tests
 make experiment   # rewrites results/, byte for byte</pre>
   <p>Data: <code>data/runs.csv</code> is a numeric extract of the tau2-bench paper's runs (Sierra Research, MIT license), pinned by checksum in <code>data/MANIFEST.json</code>. <code>tools/fetch_data.py</code> rebuilds it from upstream.</p>
 </div></section>
 </main>
 
-<footer class="wrap"><div class="col small muted">Built with Arcturus (Claude Code builders, Codex review), then reviewed and verified by hand. <a href="https://github.com/yashgix/promote-or-hold">github.com/yashgix/promote-or-hold</a></div></footer>
+<footer class="wrap"><div class="col small muted">Built with Arcturus (Claude Code builders, Codex review), then reviewed and verified by hand. <a href="https://github.com/yashgix/shipodds">github.com/yashgix/shipodds</a></div></footer>
 </body>
 </html>

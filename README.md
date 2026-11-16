@@ -1,8 +1,10 @@
-# promote-or-hold
+# shipodds
 
 **How often a promotion gate ships a worse agent, and what a safer gate costs.**
 
-Write-up with charts: <https://yashgix.github.io/promote-or-hold/>
+Write-up with charts: <https://yashgix.github.io/shipodds/>
+
+Renamed from `promote-or-hold` on 16 Nov 2026. Frozen specs and git tags keep the old name.
 
 A team that runs AI agents in production changes them all the time: a new model, a new prompt, a new policy. Each
 change goes through a *promotion gate*. It runs the candidate and the current version (the incumbent) on an
@@ -342,7 +344,7 @@ None of the statistics here is new. The measurement on real agent trials is the 
 ## Layout
 
 ```
-promote_or_hold/   data loading, gate rules, simulation, metrics, v2 checks, experiment, report rendering
+shipodds/          data loading, gate rules, simulation, metrics, v2 checks, experiment, report rendering
 tools/             fetch_data.py rebuilds the data extract, build_page.py renders docs/index.html from results/
 experiment.py      replays every gate on every pair and writes results/metrics.json and results/metrics_v2.json
 demo.py            one-line summary, or renders the results block in this README

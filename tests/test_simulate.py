@@ -4,9 +4,9 @@ import unittest
 
 import numpy as np
 
-from promote_or_hold import DATA_DIR
-from promote_or_hold.data import TRIALS, Config, load
-from promote_or_hold.gates import (
+from shipodds import DATA_DIR
+from shipodds.data import TRIALS, Config, load
+from shipodds.gates import (
     FUTILITY,
     NAIVE_PEEK,
     OBRIEN_FLEMING,
@@ -17,8 +17,8 @@ from promote_or_hold.gates import (
     bootstrap_weights,
     sequential_gate,
 )
-from promote_or_hold.pairs import Pair, aa_pairs
-from promote_or_hold.simulate import (
+from shipodds.pairs import Pair, aa_pairs
+from shipodds.simulate import (
     FIXED_TRIALS,
     SEED,
     draw,

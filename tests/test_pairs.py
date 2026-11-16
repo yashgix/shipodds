@@ -5,9 +5,9 @@ import unittest
 
 import numpy as np
 
-from promote_or_hold import DATA_DIR
-from promote_or_hold.data import TRIALS, Config, load
-from promote_or_hold.pairs import DOMAINS, MODES, POLICY_MODELS, Pair, aa_pairs, delta, real_pairs
+from shipodds import DATA_DIR
+from shipodds.data import TRIALS, Config, load
+from shipodds.pairs import DOMAINS, MODES, POLICY_MODELS, Pair, aa_pairs, delta, real_pairs
 
 
 class RealPairTests(unittest.TestCase):

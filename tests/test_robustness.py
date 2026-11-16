@@ -6,9 +6,9 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from promote_or_hold.gates import ALL_RULES, SELECTABLE
-from promote_or_hold.pairs import Pair
-from promote_or_hold.robustness import (
+from shipodds.gates import ALL_RULES, SELECTABLE
+from shipodds.pairs import Pair
+from shipodds.robustness import (
     DELTA_BINS,
     ERROR_CAPS,
     POWER_SLACKS,
@@ -19,7 +19,7 @@ from promote_or_hold.robustness import (
     pick_grid,
     power_by_difference,
 )
-from promote_or_hold.run import V2_NAME, main
+from shipodds.run import V2_NAME, main
 
 
 def summary(promote=0.5, cost=1.0):
@@ -97,7 +97,7 @@ class FoldTests(unittest.TestCase):
             [1.0] * 4,
             [1.0] * 4,
         )
-        with mock.patch("promote_or_hold.robustness.pick", side_effect=lambda m: m["mean_cost_usd"][0]):
+        with mock.patch("shipodds.robustness.pick", side_effect=lambda m: m["mean_cost_usd"][0]):
             results = folds(replay, real, copies)
         self.assertEqual([f["held_out"] for f in results], ["airline", "retail", "telecom"])
         self.assertEqual([f["pick"] for f in results], [70.0, 67.0, 5.5])

@@ -4,7 +4,7 @@ import unittest
 
 import numpy as np
 
-from promote_or_hold.gates import (
+from shipodds.gates import (
     ALL_RULES,
     BASELINE_RULES,
     BOOTSTRAP_DRAWS,

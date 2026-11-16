@@ -8,13 +8,13 @@ from unittest import mock
 
 import numpy as np
 
-from promote_or_hold import DATA_DIR
-from promote_or_hold.data import TRIALS, Config
-from promote_or_hold.gates import ALL_RULES, RULES
-from promote_or_hold.pairs import Pair
-from promote_or_hold.robustness import Replay
-from promote_or_hold.run import V2_NAME, full_cost, main, recommend, recorded_decision
-from promote_or_hold.summary import ERROR_CAP, POWER_SLACK, distinct_comparisons
+from shipodds import DATA_DIR
+from shipodds.data import TRIALS, Config
+from shipodds.gates import ALL_RULES, RULES
+from shipodds.pairs import Pair
+from shipodds.robustness import Replay
+from shipodds.run import V2_NAME, full_cost, main, recommend, recorded_decision
+from shipodds.summary import ERROR_CAP, POWER_SLACK, distinct_comparisons
 
 
 def make_config(model="m", rewards=None, costs=None):
@@ -241,14 +241,14 @@ class ControlledMainTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             out = Path(folder) / "nested" / "metrics.json"
             with (
-                mock.patch("promote_or_hold.run.load", return_value=configs),
-                mock.patch("promote_or_hold.run.real_pairs", return_value=real),
-                mock.patch("promote_or_hold.run.aa_pairs", return_value=copies),
-                mock.patch("promote_or_hold.run.simulate", side_effect=fake_simulate) as simulate_mock,
-                mock.patch("promote_or_hold.run.delta", side_effect=[0.0, -0.1, 0.2]),
-                mock.patch("promote_or_hold.run.full_cost", side_effect=[10.0, 20.0, 30.0, 4.0, 6.0]),
-                mock.patch("promote_or_hold.run.recorded_decision", side_effect=[1, -1, 0]),
-                mock.patch("promote_or_hold.run.v2_metrics", return_value={"v2": 1.0}) as v2_mock,
+                mock.patch("shipodds.run.load", return_value=configs),
+                mock.patch("shipodds.run.real_pairs", return_value=real),
+                mock.patch("shipodds.run.aa_pairs", return_value=copies),
+                mock.patch("shipodds.run.simulate", side_effect=fake_simulate) as simulate_mock,
+                mock.patch("shipodds.run.delta", side_effect=[0.0, -0.1, 0.2]),
+                mock.patch("shipodds.run.full_cost", side_effect=[10.0, 20.0, 30.0, 4.0, 6.0]),
+                mock.patch("shipodds.run.recorded_decision", side_effect=[1, -1, 0]),
+                mock.patch("shipodds.run.v2_metrics", return_value={"v2": 1.0}) as v2_mock,
             ):
                 main("ignored", out, replicates=3)
             metrics = json.loads(out.read_text())
@@ -328,7 +328,7 @@ class DistinctComparisonTests(unittest.TestCase):
 
 class OutputPathTests(unittest.TestCase):
     def test_out_must_not_be_the_v2_file(self):
-        with tempfile.TemporaryDirectory() as folder, mock.patch("promote_or_hold.run.load") as load_mock:
+        with tempfile.TemporaryDirectory() as folder, mock.patch("shipodds.run.load") as load_mock:
             with self.assertRaises(ValueError):
                 main(out=Path(folder) / V2_NAME, replicates=1)
             load_mock.assert_not_called()

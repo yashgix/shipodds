@@ -6,7 +6,7 @@
 domain, the setup mode, the task id, the trial index (0–3), the binary reward, and the USD cost of the agent's and
 the user simulator's model calls. It is pinned by `data/MANIFEST.json` and rebuilt only by `tools/fetch_data.py`.
 
-A **config** is one `(model, domain, mode)` triple. `promote_or_hold.data.load` groups the rows into 26 configs,
+A **config** is one `(model, domain, mode)` triple. `shipodds.data.load` groups the rows into 26 configs,
 each a `Config` holding the sorted tuple of task ids and two arrays shaped `(tasks, 4)`: `rewards[i, j]` is the
 reward of trial `j` of task `i`, and `costs[i, j]` the summed cost of that trial. The loader rejects a task that
 does not have each of trials 0–3 exactly once, so every later array operation can assume the full rectangle.

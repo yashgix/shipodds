@@ -3,9 +3,9 @@
 import unittest
 from pathlib import Path
 
-from promote_or_hold.gates import ALL_RULES, FUTILITY, RULES
-from promote_or_hold.pairs import DOMAINS, Pair
-from promote_or_hold.report import (
+from shipodds.gates import ALL_RULES, FUTILITY, RULES
+from shipodds.pairs import DOMAINS, Pair
+from shipodds.report import (
     MARKER_END,
     MARKER_START,
     TRADEOFF_RULES,

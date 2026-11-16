@@ -4,10 +4,10 @@ import argparse
 import json
 from pathlib import Path
 
-from promote_or_hold.data import load
-from promote_or_hold.pairs import real_pairs
-from promote_or_hold.report import render_readme, summary_line
-from promote_or_hold.run import V2_NAME
+from shipodds.data import load
+from shipodds.pairs import real_pairs
+from shipodds.report import render_readme, summary_line
+from shipodds.run import V2_NAME
 
 
 def parse_args(argv=None):

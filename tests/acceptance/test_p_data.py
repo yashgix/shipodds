@@ -6,12 +6,12 @@ from pathlib import Path
 
 import numpy as np
 
-import promote_or_hold
-from promote_or_hold.data import TRIALS, Config, load
-from promote_or_hold.pairs import Pair, aa_pairs, delta, real_pairs
-from promote_or_hold.run import recorded_decision
+import shipodds
+from shipodds.data import TRIALS, Config, load
+from shipodds.pairs import Pair, aa_pairs, delta, real_pairs
+from shipodds.run import recorded_decision
 
-DATA = promote_or_hold.DATA_DIR
+DATA = shipodds.DATA_DIR
 MODELS = ("claude-3-7-sonnet-20250219", "gpt-4.1-2025-04-14", "gpt-4.1-mini-2025-04-14", "o4-mini-2025-04-16")
 SUCCESSES = {
     ("claude-3-7-sonnet-20250219", "airline", "default"): 100,

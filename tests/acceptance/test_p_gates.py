@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from promote_or_hold.gates import (
+from shipodds.gates import (
     BOOTSTRAP_DRAWS,
     OBRIEN_FLEMING,
     POCOCK,

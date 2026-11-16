@@ -7,8 +7,8 @@ from pathlib import Path
 
 import numpy as np
 
-from promote_or_hold import DATA_DIR
-from promote_or_hold.data import TRIALS, Config, load
+from shipodds import DATA_DIR
+from shipodds.data import TRIALS, Config, load
 
 HEADER = ("model", "domain", "mode", "task_id", "trial", "reward", "agent_cost", "user_cost")
 

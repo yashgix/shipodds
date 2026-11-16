@@ -7,14 +7,14 @@ from pathlib import Path
 
 import numpy as np
 
-import promote_or_hold
-from promote_or_hold.data import TRIALS, Config
-from promote_or_hold.gates import ROUNDS, RULES
-from promote_or_hold.pairs import Pair
-from promote_or_hold.run import main, recommend
-from promote_or_hold.simulate import REPLICATES, SEED, draw, simulate
+import shipodds
+from shipodds.data import TRIALS, Config
+from shipodds.gates import ROUNDS, RULES
+from shipodds.pairs import Pair
+from shipodds.run import main, recommend
+from shipodds.simulate import REPLICATES, SEED, draw, simulate
 
-ROOT = Path(promote_or_hold.__file__).resolve().parent.parent
+ROOT = Path(shipodds.__file__).resolve().parent.parent
 GROUPS = ("aa", "worse", "better")
 PER_RULE = [f"{g}_{o}" for g in GROUPS for o in ("promote", "hold", "inconclusive")] + [
     "mean_runs",
@@ -224,7 +224,7 @@ class Experiment(unittest.TestCase):
             "--replicates",
             "20",
             "--data",
-            str(promote_or_hold.DATA_DIR),
+            str(shipodds.DATA_DIR),
         ]
         subprocess.run(args, cwd=ROOT, check=True, capture_output=True, timeout=120)
         self.assertEqual(json.loads(out.read_text())["replicates"], 20)
