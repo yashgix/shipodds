@@ -176,7 +176,7 @@ footer { padding-block: 2rem 3rem; border-top: 1px solid var(--line); }
   <ul>
     <li><b>Test versus mean gate, at equal cost.</b> <code>mean_1</code> and <code>cmh_1</code> see exactly the same trials. Only the way they read noise differs, and that takes false promotions from 43.9% to 2.4%.</li>
     <li><b>Sequential versus fixed, at equal error.</b> <code>sequential_obf</code> promotes 69.2% of better candidates against 70.2% for <code>cmh_4</code>, at 71.5% of the cost. But when the change does nothing, it rarely stops early and costs 99.4%.</li>
-    <li><b>A futility stop saves trials but holds good candidates.</b> <code>obf_futility_1.0</code> holds early when the candidate is not ahead. That cuts the cost when the change does nothing, but it also holds 24.0% of truly better candidates that the full test would have kept waiting on. It promotes 2.0% of identical copies, 67.1% of better candidates, and costs 56.4% on real pairs and 56.2% on identical copies.</li>
+    <li><b>A futility stop saves trials but holds good candidates.</b> <code>obf_futility_1.0</code> holds early when the candidate is not ahead. That cuts the cost when the change does nothing, but it also holds 24.0% of truly better candidates that the full test would have kept testing. It promotes 2.0% of identical copies, 67.1% of better candidates, and costs 56.4% on real pairs and 56.2% on identical copies.</li>
     <li><b>Safety costs power.</b> Every safe rule misses most small gains. See the table of power by true difference in the README.</li>
   </ul>
 </div></section>

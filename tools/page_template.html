@@ -140,7 +140,7 @@ footer { padding-block: 2rem 3rem; border-top: 1px solid var(--line); }
   <ul>
     <li><b>Test versus mean gate, at equal cost.</b> <code>mean_1</code> and <code>cmh_1</code> see exactly the same trials. Only the way they read noise differs, and that takes false promotions from {{MEAN1_FALSE}} to {{CMH1_FALSE}}.</li>
     <li><b>Sequential versus fixed, at equal error.</b> <code>sequential_obf</code> promotes {{OBF_POWER}} of better candidates against {{CMH4_POWER}} for <code>cmh_4</code>, at {{OBF_COST}} of the cost. But when the change does nothing, it rarely stops early and costs {{OBF_COST_AA}}.</li>
-    <li><b>A futility stop saves trials but holds good candidates.</b> <code>obf_futility_1.0</code> holds early when the candidate is not ahead. That cuts the cost when the change does nothing, but it also holds {{FUT_HELD}} of truly better candidates that the full test would have kept waiting on. It promotes {{FUT_FALSE}} of identical copies, {{FUT_POWER}} of better candidates, and costs {{FUT_COST}} on real pairs and {{FUT_COST_AA}} on identical copies.</li>
+    <li><b>A futility stop saves trials but holds good candidates.</b> <code>obf_futility_1.0</code> holds early when the candidate is not ahead. That cuts the cost when the change does nothing, but it also holds {{FUT_HELD}} of truly better candidates that the full test would have kept testing. It promotes {{FUT_FALSE}} of identical copies, {{FUT_POWER}} of better candidates, and costs {{FUT_COST}} on real pairs and {{FUT_COST_AA}} on identical copies.</li>
     <li><b>Safety costs power.</b> Every safe rule misses most small gains. See the table of power by true difference in the README.</li>
   </ul>
 </div></section>
