@@ -4,8 +4,6 @@
 
 Write-up with charts: <https://yashgix.github.io/shipodds/>
 
-Renamed from `promote-or-hold` on 16 Nov 2026. Frozen files and git tags keep the old name.
-
 A team that runs AI agents in production changes them all the time: a new model, a new prompt, a new policy. Each
 change goes through a *promotion gate*. It runs the candidate and the current version (the incumbent) on an
 evaluation suite, then promotes the candidate or keeps the incumbent. Agent runs are noisy. The same agent on the
@@ -14,10 +12,11 @@ It promotes a candidate that is really worse, or it spends far more runs than th
 
 This project measures that trade-off on real recorded agent trials: the tau2-bench paper's published runs (four
 models, three customer-service domains, policy and setup variants, four trials of every task, with each run's
-reward and recorded dollar cost). Eleven v1 gate rules are replayed on those runs. v2 adds three sequential rules
-with a futility stop and two reference rules (always hold, and a fixed test checked after every round). For each
-rule the experiment reports how often it promotes an identical copy of the agent, a worse candidate and a better
-one, how often it holds or cannot decide on a better one, and what a decision costs in runs and dollars.
+reward and recorded dollar cost). Eleven v1 gate rules are replayed on those runs. v2 adds five sequential rules
+with a futility stop, one per threshold, and two reference rules (always hold, and a fixed test checked after every
+round). For each rule the experiment reports how often it promotes an identical copy of the agent, a worse
+candidate and a better one, how often it holds or cannot decide on a better one, and what a decision costs in runs
+and dollars.
 
 **Headline.** The result is two separate effects, and they are easy to mix up.
 - A proper statistical test, not the sequential design, is what stops false promotions. A one-trial test already
@@ -29,7 +28,7 @@ one, how often it holds or cannot decide on a better one, and what a decision co
   and the folds are small, so this is a post-selection consistency check, not an independent validation.
 - Every safe rule pays for its safety by promoting fewer truly better candidates, mostly the ones with small gains.
 
-The numbers are generated at the top of [Results](#results), next to the caveats that bound them.
+The numbers are at the top of [Results](#results), next to the caveats that bound them.
 
 ## Why it matters
 
@@ -325,8 +324,8 @@ None of the statistics here is new. The measurement on real agent trials is the 
 - **Three small, exploratory folds.** Each held-out domain has only a handful of comparisons, and the selection
   design was fixed after looking at all of them. The folds are a consistency check, not an independent validation,
   and they cannot pin the numbers down.
-- **The futility grid was widened after review.** The first grid stopped at the threshold that was picked, so larger
-  thresholds were untested. The two larger thresholds were added after an independent review. The picks did not
+- **The futility grid was widened after the first results.** The first grid stopped at the threshold that was
+  picked, so larger thresholds were untested. The two larger thresholds were added afterwards. The picks did not
   move, because the larger thresholds lose more power than the slack allows. The caveat paragraph flags it if the
   pick ever sits at the end of the grid again.
 - **The task bootstrap answers a broader question** (how the gate behaves on new tasks drawn from a task
@@ -351,7 +350,7 @@ demo.py            one-line summary, or renders the results block in this README
 tests/             unit tests (unittest), with the v1 acceptance tests unchanged in tests/acceptance/
 SPEC-v2.md         what v2 adds and why (the v1 specification is not included)
 data/              the pinned extract, its license copy and manifest
-docs/              DESIGN.md and REVIEW.md, the final independent review
+docs/              DESIGN.md (design notes) and index.html (the write-up page)
 ```
 
 ## Data and licenses
@@ -363,7 +362,3 @@ docs/              DESIGN.md and REVIEW.md, the final independent review
   `tools/fetch_data.py` rebuilds the extract from the pinned upstream commit and checks every file against the
   sha256 sums in `data/MANIFEST.json`.
 - **NumPy** (BSD-3-Clause) and **ruff** (MIT) are installed by the user and not shipped.
-
-## Built with
-
-Built with Arcturus (Claude Code builders, Codex review), then reviewed and verified by hand.

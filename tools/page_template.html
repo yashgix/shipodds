@@ -41,6 +41,11 @@ section + section { border-top: 1px solid var(--line); }
 .bar-in { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-block: 0.6rem; }
 .brand { font-family: var(--mono); font-weight: 600; }
 .gh { font-size: var(--s0); font-weight: 600; text-decoration: none; white-space: nowrap; border: 1px solid var(--accent); border-radius: 999px; padding: 0.3rem 0.8rem; }
+.tabs { display: flex; gap: 0.25rem; }
+.bar-in .tabs { margin-left: auto; }
+.tabs button { font: inherit; font-size: var(--s0); font-weight: 500; border: 0; background: transparent; color: var(--muted); padding: 0.4rem 0.8rem; border-radius: 999px; cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--accent-soft); color: var(--accent); }
+.btn { display: inline-flex; align-items: center; gap: 0.4rem; font: inherit; font-weight: 500; padding: 0.55rem 1rem; border-radius: 999px; border: 1px solid var(--accent); color: var(--accent); background: var(--paper); cursor: pointer; }
 header { padding-block: 3.5rem 2.25rem; background: linear-gradient(180deg, var(--band), var(--paper)); }
 h1 { font-family: var(--mono); font-size: var(--s4); font-weight: 600; letter-spacing: -0.03em; overflow-wrap: anywhere; }
 .lede { font-size: var(--s2); color: var(--muted); max-width: 60ch; line-height: 1.55; }
@@ -76,16 +81,20 @@ svg .acc { fill: var(--accent-soft); stroke: var(--accent); }
 svg .line { stroke: var(--muted); fill: none; stroke-width: 1.5; }
 footer { padding-block: 2rem 3rem; border-top: 1px solid var(--line); }
 @media (max-width: 860px) { .charts { grid-template-columns: minmax(0, 1fr); } }
-@media (max-width: 760px) { .tiles { grid-template-columns: minmax(0, 1fr); } .brand { display: none; } .b, .axis { grid-template-columns: 6.6rem minmax(0, 1fr) 3.2rem; } }
+@media (max-width: 760px) { .tiles { grid-template-columns: minmax(0, 1fr); } .brand { display: none; } .tabs button { padding: 0.4rem 0.55rem; } .gh { padding: 0.3rem 0.6rem; } .b, .axis { grid-template-columns: 6.6rem minmax(0, 1fr) 3.2rem; } }
 </style>
 </head>
 <body>
 <div class="bar wrap"><div class="wide bar-in">
   <span class="brand">shipodds</span>
-  <a class="gh" href="https://github.com/yashgix/shipodds">GitHub ↗</a>
+  <div class="tabs" role="tablist" aria-label="View">
+    <button role="tab" id="tab-overview" aria-controls="overview" aria-selected="true" data-view="overview">Overview</button>
+    <button role="tab" id="tab-details" aria-controls="details" aria-selected="false" data-view="details">Technical details</button>
+  </div>
+  <a class="gh" href="https://github.com/yashgix/shipodds" target="_blank" rel="noopener">GitHub ↗</a>
 </div></div>
 
-<main>
+<main id="overview" role="tabpanel" aria-labelledby="tab-overview">
 <header class="wrap"><div class="col stack">
   <p class="eyebrow">Agent evaluation · tau2-bench recorded trials</p>
   <h1>shipodds</h1>
@@ -105,10 +114,9 @@ footer { padding-block: 2rem 3rem; border-top: 1px solid var(--line); }
 </div></section>
 
 <section class="wrap"><div class="col stack">
-  <p class="eyebrow">Approach</p>
+  <p class="eyebrow">How it works</p>
   <h2>Replay every rule on the recorded world</h2>
   <p>The data is the tau2-bench paper's published runs: four models, three customer-service domains plus setup variants, four trials of every task, with reward and dollar cost. That makes 26 configs and 52 candidate and incumbent pairs, because every comparison is counted in both directions. The pairs also include identical copies, where promoting is always wrong.</p>
-  <p>A new trial is one of the task's recorded trials, drawn at random, so the recorded runs are the world and the true difference is known. Each gate is replayed 2,000 times per pair. Fixed seeds make two runs byte-identical.</p>
   <div class="table-wrap"><svg style="min-width:600px" viewBox="0 0 760 130" role="img" aria-label="Data flow: recorded runs, pairs, simulated trials, gate rule, metrics">
     <defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#52625f"/></marker></defs>
     <rect class="box" x="4" y="30" width="130" height="64" rx="8"/><text x="69" y="58" text-anchor="middle">Recorded runs</text><text x="69" y="76" text-anchor="middle">runs.csv, 10,832</text>
@@ -125,7 +133,7 @@ footer { padding-block: 2rem 3rem; border-top: 1px solid var(--line); }
 <section class="wrap"><div class="wide stack">
   <p class="eyebrow">Results</p>
   <h2>False promotions, power and cost for each rule</h2>
-  <p class="muted">All 52 pairs, in sample. Amber marks <code>naive_peek</code>. Every number below is drawn from <code>results/metrics_v2.json</code> by <code>tools/build_page.py</code>.</p>
+  <p class="muted">All 52 pairs, in sample. Amber marks <code>naive_peek</code>. Every number comes from <code>results/metrics_v2.json</code>.</p>
   <div class="charts">
     {{CHART_FALSE}}
     {{CHART_POWER}}
@@ -141,8 +149,36 @@ footer { padding-block: 2rem 3rem; border-top: 1px solid var(--line); }
     <li><b>Test versus mean gate, at equal cost.</b> <code>mean_1</code> and <code>cmh_1</code> see exactly the same trials. Only the way they read noise differs, and that takes false promotions from {{MEAN1_FALSE}} to {{CMH1_FALSE}}.</li>
     <li><b>Sequential versus fixed, at equal error.</b> <code>sequential_obf</code> promotes {{OBF_POWER}} of better candidates against {{CMH4_POWER}} for <code>cmh_4</code>, at {{OBF_COST}} of the cost. But when the change does nothing, it rarely stops early and costs {{OBF_COST_AA}}.</li>
     <li><b>A futility stop saves trials but holds good candidates.</b> <code>obf_futility_1.0</code> holds early when the candidate is not ahead. That cuts the cost when the change does nothing, but it also holds {{FUT_HELD}} of truly better candidates that the full test would have kept testing. It promotes {{FUT_FALSE}} of identical copies, {{FUT_POWER}} of better candidates, and costs {{FUT_COST}} on real pairs and {{FUT_COST_AA}} on identical copies.</li>
-    <li><b>Safety costs power.</b> Every safe rule misses most small gains. See the table of power by true difference in the README.</li>
+    <li><b>Safety costs power.</b> Every safe rule misses most small gains. See the table of power by true difference in the <a href="https://github.com/yashgix/shipodds#results">README</a>.</li>
   </ul>
+</div></section>
+
+<section class="wrap"><div class="col stack">
+  <p class="eyebrow">Limitations</p>
+  <h2>How small this is</h2>
+  <ul>
+    <li>Only {{DISTINCT}} distinct comparisons. Each is counted in both directions, and some configs appear in several. Group rates are averages over a few dozen comparisons, not independent measurements.</li>
+    <li>The v1 rule was picked in sample, with caps set after a prototype run on the same data.</li>
+    <li>The three domain folds are exploratory post-selection checks and carry no intervals.</li>
+    <li>The recorded runs are the world, with at most four trials per task. Real noise may be larger. Error rates are relative to this simulated world, not to agents' true quality.</li>
+    <li>2025 models and prices, customer-service domains, and the paper's June 2025 task sets. Nothing here speaks to current agents.</li>
+    <li>The statistical gates promote a worse candidate rarely, not never. The rates round to zero in the tables.</li>
+  </ul>
+  <p><button class="btn" type="button" data-view="details">Technical details →</button></p>
+</div></section>
+</main>
+
+<main id="details" role="tabpanel" aria-labelledby="tab-details" hidden>
+<header class="wrap"><div class="col stack">
+  <p class="eyebrow">Technical details</p>
+  <h1 style="font-size:clamp(1.8rem,4.4vw,2.5rem)">Method, results and data</h1>
+</div></header>
+
+<section class="wrap"><div class="col stack">
+  <p class="eyebrow">Method</p>
+  <h2>Simulated trials, seeded</h2>
+  <p>A new trial is one of the task's recorded trials, drawn at random, so the recorded runs are the world and the true difference is known. Each gate is replayed 2,000 times per pair. Fixed seeds make two runs byte-identical.</p>
+  <p>The design notes, with the seeds and the selection procedure, are in <a href="https://github.com/yashgix/shipodds/blob/main/docs/DESIGN.md"><code>docs/DESIGN.md</code></a>. The full tables are in the <a href="https://github.com/yashgix/shipodds#results">README</a>.</p>
 </div></section>
 
 <section class="wrap"><div class="wide stack">
@@ -162,21 +198,8 @@ footer { padding-block: 2rem 3rem; border-top: 1px solid var(--line); }
 <section class="wrap"><div class="col stack">
   <p class="eyebrow">What v2 changed</p>
   <h2>The headline was reworded, the evidence was widened</h2>
-  <p>v1 read as "the sequential gate lowers false promotions at lower cost". The data support two separate claims instead, shown above. v2 added the futility rules, the two reference rules (<code>always_hold</code>, <code>naive_peek</code>), the held-out folds, a power-by-difference table, a smoothed-noise world and a grid of caps. The v1 results file stays byte-identical.</p>
-  <p>After an independent review the futility grid was extended with two larger thresholds, because the first grid stopped at the picked one. The pick, <code>obf_futility_1.0</code>, now sits at an interior point of the grid, and the larger thresholds lose more power than the slack allows.</p>
-</div></section>
-
-<section class="wrap"><div class="col stack">
-  <p class="eyebrow">Limitations</p>
-  <h2>How small this is</h2>
-  <ul>
-    <li>Only {{DISTINCT}} distinct comparisons. Each is counted in both directions, and some configs appear in several. Group rates are averages over a few dozen comparisons, not independent measurements.</li>
-    <li>The v1 rule was picked in sample, with caps set after a prototype run on the same data.</li>
-    <li>The three domain folds are exploratory post-selection checks and carry no intervals.</li>
-    <li>The recorded runs are the world, with at most four trials per task. Real noise may be larger. Error rates are relative to this simulated world, not to agents' true quality.</li>
-    <li>2025 models and prices, customer-service domains, and the paper's June 2025 task sets. Nothing here speaks to current agents.</li>
-    <li>The statistical gates promote a worse candidate rarely, not never. The rates round to zero in the tables.</li>
-  </ul>
+  <p>v1 read as "the sequential gate lowers false promotions at lower cost". The data support two separate claims instead, shown on the Overview. v2 added the futility rules, the two reference rules (<code>always_hold</code>, <code>naive_peek</code>), the held-out folds, a power-by-difference table, a smoothed-noise world and a grid of caps. The v1 results file stays byte-identical.</p>
+  <p>The futility grid was later extended with two larger thresholds, because the first grid stopped at the picked one. The pick, <code>obf_futility_1.0</code>, now sits at an interior point of the grid, and the larger thresholds lose more power than the slack allows.</p>
 </div></section>
 
 <section class="wrap"><div class="col stack">
@@ -186,10 +209,35 @@ footer { padding-block: 2rem 3rem; border-top: 1px solid var(--line); }
 cd shipodds
 make test         # own tests and the v1 acceptance tests
 make experiment   # rewrites results/, byte for byte</pre>
-  <p>Data: <code>data/runs.csv</code> is a numeric extract of the tau2-bench paper's runs (Sierra Research, MIT license), pinned by checksum in <code>data/MANIFEST.json</code>. <code>tools/fetch_data.py</code> rebuilds it from upstream.</p>
+</div></section>
+
+<section class="wrap"><div class="col stack">
+  <p class="eyebrow">Data and licenses</p>
+  <h2>Recorded runs, pinned by checksum</h2>
+  <p><code>data/runs.csv</code> is a numeric extract of the tau2-bench paper's runs (Sierra Research, MIT license), pinned by checksum in <code>data/MANIFEST.json</code>. <code>tools/fetch_data.py</code> rebuilds it from upstream.</p>
+  <p>The code is MIT-licensed.</p>
+  <p><button class="btn" type="button" data-view="overview">← Overview</button></p>
 </div></section>
 </main>
 
-<footer class="wrap"><div class="col small muted">Built with Arcturus (Claude Code builders, Codex review), then reviewed and verified by hand. <a href="https://github.com/yashgix/shipodds">github.com/yashgix/shipodds</a></div></footer>
+<footer class="wrap"><div class="col small muted">shipodds · Yash Gupta · <a href="https://github.com/yashgix/shipodds">github.com/yashgix/shipodds</a></div></footer>
+
+<script>
+const views = ["overview", "details"];
+function show(v) {
+  if (!views.includes(v)) v = "overview";
+  for (const x of views) {
+    document.getElementById(x).hidden = x !== v;
+    document.getElementById("tab-" + x).setAttribute("aria-selected", String(x === v));
+  }
+}
+document.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => {
+  history.replaceState(null, "", "#" + b.dataset.view);
+  show(b.dataset.view);
+  window.scrollTo(0, 0);
+}));
+addEventListener("hashchange", () => show(location.hash.slice(1)));
+show(location.hash.slice(1));
+</script>
 </body>
 </html>
