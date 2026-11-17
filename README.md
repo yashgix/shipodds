@@ -45,7 +45,7 @@ the cost.
 
 ```bash
 $ python demo.py
-mean_1 promotes an identical copy 43.9% of the time; the recommended rule (sequential_obf) 2.4%, at 71.5% of a full evaluation's cost.
+mean_1 promotes an identical copy 43.9% of the time; the v1 pick (sequential_obf) 2.4%, at 71.5% of a full evaluation's cost.
 ```
 
 An identical copy of an agent is never better, so every promotion of one is a mistake. The "higher mean wins" gate
@@ -326,8 +326,7 @@ None of the statistics here is new. The measurement on real agent trials is the 
   and they cannot pin the numbers down.
 - **The futility grid was widened after the first results.** The first grid stopped at the threshold that was
   picked, so larger thresholds were untested. The two larger thresholds were added afterwards. The picks did not
-  move, because the larger thresholds lose more power than the slack allows. The caveat paragraph flags it if the
-  pick ever sits at the end of the grid again.
+  move, because the larger thresholds lose more power than the slack allows.
 - **The task bootstrap answers a broader question** (how the gate behaves on new tasks drawn from a task
   distribution) than the truth used to score it (this suite). That is why it is more often inconclusive. It is a
   property of the question, not a defect of the method.

@@ -82,7 +82,7 @@ def summary_line(metrics):
         return f"mean_1 promotes an identical copy {pct(naive)} of the time; no rule meets the error caps."
     return (
         f"mean_1 promotes an identical copy {pct(naive)} of the time; "
-        f"the recommended rule ({RULES[chosen]}) {pct(metrics['aa_promote'][chosen])}, "
+        f"the v1 pick ({RULES[chosen]}) {pct(metrics['aa_promote'][chosen])}, "
         f"at {pct(metrics['cost_share'][chosen])} of a full evaluation's cost."
     )
 

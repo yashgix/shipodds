@@ -22,7 +22,7 @@ Three kinds of comparison, all drawn from the same 26 configs:
 - **Model swaps** (36): within each of airline, retail and telecom, every ordered pair of distinct models in the
   `default` mode. These are the changes a team actually considers, such as "should we move to the newer model?"
 - **Policy changes** (16): the telecom task suite under the plain agent versus the workflow-style policy, in both
-  directions, for the two OpenAI models. Same tasks, different scaffolding.
+  directions, for gpt-4.1 and o4-mini. Same tasks, different scaffolding.
 - **Identical copies** (26): each config compared with itself, candidate arm equal to incumbent arm. Nothing can be
   better here, so every promotion is a false promotion, and the rate is the cleanest measure of how trigger-happy a
   gate is.
